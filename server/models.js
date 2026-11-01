@@ -6,7 +6,7 @@ module.exports = {
     role: { type: String, enum: ['doctor', 'patient'], default: 'doctor' },
     patientId: { type: mongoose.Schema.Types.ObjectId, ref: 'Patient' },
   }),
-  Patient: M('Patient', { name: String, age: Number, phone: String, history: String }),
+  Patient: M('Patient', { name: String, age: Number, phone: String, healthIssues: String, history: String }),
   Visit: M('Visit', {
     patient: { type: mongoose.Schema.Types.ObjectId, ref: 'Patient', required: true },
     date: { type: String, required: true }, reason: String,
@@ -22,7 +22,9 @@ module.exports = {
   }),
   Invoice: M('Invoice', {
     patient: String, patientId: { type: mongoose.Schema.Types.ObjectId, ref: 'Patient' },
-    date: String, description: String, subtotal: Number, gstRate: Number,
+    date: String, description: String,
+    lineItems: [{ description: String, quantity: Number, unitPrice: Number, amount: Number }],
+    subtotal: Number, gstRate: Number,
     gstAmount: Number, amount: Number, insurance: String, status: { type: String, default: 'Unpaid' },
   }),
   Item: M('Item', { name: String, qty: Number, minQty: { type: Number, default: 10 } }),

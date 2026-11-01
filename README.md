@@ -7,9 +7,9 @@ A dental clinic management demo tailored to Indian practices. It includes appoin
 - **Dashboard:** patient and appointment counts, pending treatments, monthly paid revenue, upcoming appointments, and low-stock alerts.
 - **Appointments:** create appointments and update their status (Booked, Confirmed, Completed, or Cancelled).
 - **Patient portal:** patients can request, reschedule, and cancel eligible appointments; view their visits, treatment history, clinical notes, and prescription PDFs; review invoice totals and print/save invoice PDFs; read general post-treatment guidance; and use the SmileCraft Assistant for navigation and general dental-care FAQs. The patient assistant responds locally and does not send patient records to Gemini. Emergency call and WhatsApp links can be configured with `VITE_CLINIC_PHONE`.
-- **Patients:** manage patient names, ages, and phone numbers; open each patient's visit notebook to review or record visit dates, prescriptions, and clinical notes.
+- **Patients:** manage patient names, ages, 10-digit phone numbers, and known health issues; open each patient's visit notebook to review or record visit dates, prescriptions, and clinical notes.
 - **Patient visit notebooks:** keep visit dates, treatment details, prescriptions, and clinical notes together in each patient record.
-- **Billing:** create itemized invoices in Indian rupees (INR), optionally enter a GST rate per bill, record an insurer or Self Pay, update Unpaid/Paid status, and preview or print bills.
+- **Billing:** create itemized invoices in Indian rupees (INR), add multiple services with quantity and rate, optionally enter a GST rate per bill, record an insurer or Self Pay, update Unpaid/Paid status, and preview or print bills.
 - **Inventory:** maintain item quantities and reorder thresholds; edit quantities directly or use **Use 1** to record consumption.
 - **Reports:** view monthly revenue and treatment mix, plus an appointments bar chart filtered by date range and grouped by day, week, or month.
 - **AI Assistant:** with a Gemini API key, ask a broad range of questions, including clinic metrics and general oral-health education. Without a key, a limited rule-based assistant remains available. It does not diagnose or prescribe.

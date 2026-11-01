@@ -4,6 +4,15 @@ import { api } from './api.js'; C.register(...registerables);
 
 const CLINIC_NAME = 'SmileCraft Dental Clinic';
 const inr = n => '₹' + (n || 0).toLocaleString('en-IN');
+const invoiceLines = invoice => {
+  if (invoice.lineItems?.length) return invoice.lineItems;
+  return [{
+    description: invoice.description || 'Dental service',
+    quantity: 1,
+    unitPrice: Number(invoice.subtotal ?? invoice.amount ?? 0),
+    amount: Number(invoice.subtotal ?? invoice.amount ?? 0),
+  }];
+};
 const INDIAN_INSURERS = ['Star Health', 'Care Health', 'Max Bupa', 'Niva Bupa', 'ICICI Lombard', 'Self Pay'];
 const APPOINTMENT_STATUS = ['Booked', 'Confirmed', 'Completed', 'Cancelled'];
 const NAV_ITEMS = [
@@ -65,7 +74,7 @@ function Login({ onDone }) {
     <h1>{CLINIC_NAME}</h1><p className="muted">Appointments and patient care for your Indian dental practice</p>
     <div className="auth-mode"><button type="button" className={!registering ? '' : 'ghost'} onClick={() => changeMode(false)}>Sign in</button><button type="button" className={registering ? '' : 'ghost'} onClick={() => changeMode(true)}>Patient registration</button></div>
     {registering && <input required autoComplete="name" value={f.name} onChange={e => setF({ ...f, name: e.target.value })} placeholder="Full name" />}
-    {registering && <input required type="tel" autoComplete="tel" value={f.phone} onChange={e => setF({ ...f, phone: e.target.value })} placeholder="Phone number" />}
+    {registering && <input required type="tel" autoComplete="tel" inputMode="numeric" pattern="[0-9]{10}" maxLength={10} title="Enter a 10-digit phone number" value={f.phone} onChange={e => setF({ ...f, phone: e.target.value })} placeholder="10-digit phone number" />}
     <input required type="email" autoComplete="email" value={f.email} onChange={e => setF({ ...f, email: e.target.value })} placeholder="Email" />
     <input required type="password" autoComplete={registering ? 'new-password' : 'current-password'} minLength={registering ? 8 : undefined} value={f.password} onChange={e => setF({ ...f, password: e.target.value })} placeholder={registering ? 'Create password (8+ characters)' : 'Password'} />
     {err && <p className="err" role="alert">{err}</p>}
@@ -120,7 +129,7 @@ function Resource({ title, path, fields }) {
 }
 
 function Patients() {
-  const emptyPatient = () => ({ name: '', age: '', phone: '' });
+  const emptyPatient = () => ({ name: '', age: '', phone: '', healthIssues: '' });
   const emptyVisit = () => ({ date: todayDate(), reason: '', prescription: '', prescriptionPdf: '', prescriptionFilename: '', notes: '' });
   const [patients, setPatients] = useState([]), [form, setForm] = useState(emptyPatient);
   const [search, setSearch] = useState(''), [selectedPatient, setSelectedPatient] = useState(null);
@@ -141,6 +150,10 @@ function Patients() {
   const addPatient = async e => {
     e.preventDefault();
     setError('');
+    if (form.phone && !/^\d{10}$/.test(form.phone)) {
+      setError('Enter a 10-digit phone number, or leave it blank.');
+      return;
+    }
     try {
       await api('patients', 'POST', { ...form, age: form.age ? Number(form.age) : undefined });
       setForm(emptyPatient());
@@ -162,18 +175,23 @@ function Patients() {
   };
   const editPatient = patient => {
     setEditingPatient(patient);
-    setEditForm({ name: patient.name || '', age: patient.age ?? '', phone: patient.phone || '' });
+    setEditForm({ name: patient.name || '', age: patient.age ?? '', phone: patient.phone || '', healthIssues: patient.healthIssues || '' });
     setEditError('');
   };
   const savePatient = async event => {
     event.preventDefault();
     if (!editingPatient) return;
     setEditError('');
+    if (editForm.phone && !/^\d{10}$/.test(editForm.phone)) {
+      setEditError('Enter a 10-digit phone number, or leave it blank.');
+      return;
+    }
     try {
       await api(`patients/${editingPatient._id}`, 'PUT', {
         name: editForm.name.trim(),
         age: editForm.age === '' ? undefined : Number(editForm.age),
         phone: editForm.phone.trim(),
+        healthIssues: editForm.healthIssues.trim(),
       });
       await loadPatients();
       setEditingPatient(null);
@@ -249,14 +267,15 @@ function Patients() {
     <form className="card form" onSubmit={addPatient}>
       <input required placeholder="Patient name" value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} />
       <input type="number" min="0" placeholder="Age" value={form.age} onChange={e => setForm({ ...form, age: e.target.value })} />
-      <input placeholder="Phone" value={form.phone} onChange={e => setForm({ ...form, phone: e.target.value })} />
+      <input type="tel" inputMode="numeric" pattern="[0-9]{10}" maxLength={10} title="Enter a 10-digit phone number, or leave blank" placeholder="10-digit phone (optional)" value={form.phone} onChange={e => setForm({ ...form, phone: e.target.value })} />
+      <input maxLength={500} placeholder="Known health issues (e.g. diabetes, allergies)" value={form.healthIssues} onChange={e => setForm({ ...form, healthIssues: e.target.value })} />
       <button type="submit">Add patient</button>
     </form>
     {error && <p className="err" role="alert">{error}</p>}
     <input className="search" placeholder="Search patients" value={search} onChange={e => setSearch(e.target.value)} />
-    <div className="card scroll"><table><thead><tr><th>Name</th><th>Age</th><th>Phone</th><th>Visit notes</th><th>Actions</th></tr></thead>
+    <div className="card scroll"><table><thead><tr><th>Name</th><th>Age</th><th>Phone</th><th>Known health issues</th><th>Visit notes</th><th>Actions</th></tr></thead>
       <tbody>{shown.map(patient => <tr key={patient._id}>
-        <td>{patient.name}</td><td>{patient.age || '—'}</td><td>{patient.phone || '—'}</td>
+        <td>{patient.name}</td><td>{patient.age || '—'}</td><td>{patient.phone || '—'}</td><td className="health-issues-cell">{patient.healthIssues || '—'}</td>
         <td><button className="ghost mini" onClick={() => setSelectedPatient(patient)}>Open visit notebook</button></td>
         <td><div className="patient-actions"><button className="ghost mini" onClick={() => editPatient(patient)}>Edit</button><button className="ghost mini" onClick={() => deletePatient(patient)}>Delete</button></div></td>
       </tr>)}</tbody></table>
@@ -268,7 +287,8 @@ function Patients() {
         </header>
         <label>Patient name<input required value={editForm.name} onChange={e => setEditForm({ ...editForm, name: e.target.value })} /></label>
         <label>Age<input type="number" min="0" value={editForm.age} onChange={e => setEditForm({ ...editForm, age: e.target.value })} /></label>
-        <label>Phone<input type="tel" value={editForm.phone} onChange={e => setEditForm({ ...editForm, phone: e.target.value })} /></label>
+        <label>Phone (10 digits)<input type="tel" inputMode="numeric" pattern="[0-9]{10}" maxLength={10} title="Enter a 10-digit phone number, or leave blank" value={editForm.phone} onChange={e => setEditForm({ ...editForm, phone: e.target.value })} /></label>
+        <label>Known health issues<textarea maxLength={500} rows="3" value={editForm.healthIssues} onChange={e => setEditForm({ ...editForm, healthIssues: e.target.value })} placeholder="e.g. Diabetes, hypertension, allergies" /></label>
         {editError && <p className="err" role="alert">{editError}</p>}
         <div className="patient-edit-actions"><button type="button" className="ghost" onClick={() => setEditingPatient(null)}>Cancel</button><button type="submit">Save changes</button></div>
       </form>
@@ -345,7 +365,8 @@ function todayDate() {
 }
 
 function Billing() {
-  const emptyForm = () => ({ patientId: '', date: todayDate(), description: '', subtotal: '', gstRate: '', insurance: 'Self Pay', status: 'Unpaid' });
+  const emptyLine = () => ({ description: '', quantity: '1', unitPrice: '' });
+  const emptyForm = () => ({ patientId: '', date: todayDate(), lineItems: [emptyLine()], gstRate: '', insurance: 'Self Pay', status: 'Unpaid' });
   const [invoices, setInvoices] = useState([]), [patients, setPatients] = useState([]);
   const [form, setForm] = useState(emptyForm), [selected, setSelected] = useState(null), [err, setErr] = useState('');
   const load = async () => {
@@ -354,7 +375,13 @@ function Billing() {
     setPatients(patientRows);
   };
   useEffect(() => { load().catch(e => setErr(e.message)); }, []);
-  const subtotal = Number(form.subtotal) || 0;
+  const lineItems = form.lineItems.map(line => ({
+    description: line.description.trim(),
+    quantity: Number(line.quantity) || 0,
+    unitPrice: Number(line.unitPrice) || 0,
+    amount: (Number(line.quantity) || 0) * (Number(line.unitPrice) || 0),
+  }));
+  const subtotal = lineItems.reduce((sum, line) => sum + line.amount, 0);
   const gstRate = Number(form.gstRate) || 0;
   const gstAmount = Math.round(subtotal * gstRate) / 100;
   const total = subtotal + gstAmount;
@@ -365,7 +392,9 @@ function Billing() {
       const patient = patients.find(item => item._id === form.patientId);
       if (!patient) throw new Error('Select a patient for this invoice.');
       await api('invoices', 'POST', {
-        ...form, patient: patient.name, subtotal, gstRate, gstAmount, amount: total,
+        patientId: patient._id, patient: patient.name, date: form.date,
+        lineItems, description: lineItems.map(line => line.description).join(', '),
+        subtotal, gstRate, gstAmount, amount: total, insurance: form.insurance, status: form.status,
       });
       setForm(emptyForm());
       await load();
@@ -401,8 +430,15 @@ function Billing() {
         </select>
       </label>
       <label>Bill date<input required type="date" value={form.date} onChange={e => setForm({ ...form, date: e.target.value })} /></label>
-      <label>Service / treatment<input required value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} placeholder="e.g. Consultation, root canal" /></label>
-      <label>Amount before GST (₹)<input required type="number" min="0.01" step="0.01" value={form.subtotal} onChange={e => setForm({ ...form, subtotal: e.target.value })} /></label>
+      <div className="invoice-line-items">
+        <div className="invoice-lines-heading"><strong>Services / treatments</strong><button type="button" className="ghost mini" onClick={() => setForm({ ...form, lineItems: [...form.lineItems, emptyLine()] })}>Add item</button></div>
+        {form.lineItems.map((line, index) => <div className="invoice-line" key={index}>
+          <label>Description<input required value={line.description} onChange={e => setForm({ ...form, lineItems: form.lineItems.map((item, i) => i === index ? { ...item, description: e.target.value } : item) })} placeholder="e.g. Consultation" /></label>
+          <label>Qty<input required type="number" min="1" step="1" value={line.quantity} onChange={e => setForm({ ...form, lineItems: form.lineItems.map((item, i) => i === index ? { ...item, quantity: e.target.value } : item) })} /></label>
+          <label>Rate (₹)<input required type="number" min="0.01" step="0.01" value={line.unitPrice} onChange={e => setForm({ ...form, lineItems: form.lineItems.map((item, i) => i === index ? { ...item, unitPrice: e.target.value } : item) })} /></label>
+          {form.lineItems.length > 1 && <button type="button" className="ghost mini remove-invoice-line" aria-label={`Remove item ${index + 1}`} onClick={() => setForm({ ...form, lineItems: form.lineItems.filter((_, i) => i !== index) })}>Remove</button>}
+        </div>)}
+      </div>
       <label>GST rate (%) — optional<input type="number" min="0" max="100" step="0.01" value={form.gstRate} onChange={e => setForm({ ...form, gstRate: e.target.value })} placeholder="Leave blank for no GST" /></label>
       <label>Insurance / payment
         <select value={form.insurance} onChange={e => setForm({ ...form, insurance: e.target.value })}>
@@ -414,7 +450,7 @@ function Billing() {
           <option>Unpaid</option><option>Paid</option>
         </select>
       </label>
-      <div className="invoice-total"><span>GST: {inr(gstAmount)}</span><strong>Total: {inr(total)}</strong></div>
+      <div className="invoice-total"><span>Subtotal: {inr(subtotal)}</span><span>GST: {inr(gstAmount)}</span><strong>Total: {inr(total)}</strong></div>
       {err && <p className="err" role="alert">{err}</p>}
       <button type="submit">Create invoice</button>
     </form>
@@ -423,7 +459,7 @@ function Billing() {
         const base = Number(invoice.subtotal ?? invoice.amount ?? 0);
         const tax = Number(invoice.gstAmount || 0);
         return <tr key={invoice._id}>
-          <td>{invoiceNumber(invoice)}</td><td>{invoice.patient}</td><td>{invoice.date}</td><td>{invoice.description || 'Dental service'}</td>
+          <td>{invoiceNumber(invoice)}</td><td>{invoice.patient}</td><td>{invoice.date}</td><td>{invoiceLines(invoice).map(line => line.description).join(', ')}</td>
           <td>{inr(base)}</td><td>{inr(tax)}</td><td><strong>{inr(invoice.amount)}</strong></td>
           <td><select className="status-select" value={invoice.status || 'Unpaid'} onChange={e => updateStatus(invoice, e.target.value)}><option>Unpaid</option><option>Paid</option></select></td>
           <td><div className="invoice-actions"><button className="ghost mini" onClick={() => setSelected(invoice)}>View / Print</button><button className="ghost mini" onClick={() => removeInvoice(invoice)}>Delete</button></div></td>
@@ -435,7 +471,7 @@ function Billing() {
         <header><div><h2>{CLINIC_NAME}</h2><p>Dental clinic invoice</p></div><div className="invoice-number"><strong>{invoiceNumber(selected)}</strong><br />Date: {selected.date}</div></header>
         <hr />
         <p><strong>Bill to:</strong> {selected.patient}</p>
-        <table><thead><tr><th>Description</th><th>Amount</th></tr></thead><tbody><tr><td>{selected.description || 'Dental service'}</td><td>{inr(selected.subtotal ?? selected.amount)}</td></tr></tbody></table>
+        <table><thead><tr><th>Description</th><th>Qty</th><th>Rate</th><th>Amount</th></tr></thead><tbody>{invoiceLines(selected).map((line, index) => <tr key={index}><td>{line.description}</td><td>{line.quantity}</td><td>{inr(line.unitPrice)}</td><td>{inr(line.amount)}</td></tr>)}</tbody></table>
         <div className="invoice-breakdown"><p>Subtotal: {inr(selected.subtotal ?? selected.amount)}</p><p>GST ({Number(selected.gstRate || 0)}%): {inr(selected.gstAmount || 0)}</p><h3>Total: {inr(selected.amount)}</h3><p>Status: {selected.status || 'Unpaid'}</p></div>
         <p className="muted">Thank you for choosing {CLINIC_NAME}.</p>
         <div className="invoice-actions no-print"><button onClick={printInvoice}>Print bill</button><button className="ghost" onClick={() => setSelected(null)}>Close</button></div>
@@ -783,7 +819,7 @@ function PatientPortal({ name, onSignOut }) {
       </div>
       {recordsError && <p className="err" role="alert">{recordsError}</p>}
       {records.invoices.map(invoice => <article className="portal-invoice" key={invoice._id}>
-        <div><strong>{invoiceNumber(invoice)}</strong><p>{invoice.date} · {invoice.description || 'Dental service'}</p></div>
+        <div><strong>{invoiceNumber(invoice)}</strong><p>{invoice.date} · {invoiceLines(invoice).map(line => line.description).join(', ')}</p></div>
         <strong>{inr(invoice.amount)}</strong>
         <span className={'tag ' + String(invoice.status || 'Unpaid').toLowerCase()}>{invoice.status || 'Unpaid'}</span>
         <button type="button" className="ghost mini" onClick={() => downloadInvoice(invoice)}>Download / print PDF</button>
@@ -795,7 +831,7 @@ function PatientPortal({ name, onSignOut }) {
         <header><div><h2>{CLINIC_NAME}</h2><p>Dental clinic invoice</p></div><div className="invoice-number"><strong>{invoiceNumber(selectedInvoice)}</strong><br />Date: {selectedInvoice.date}</div></header>
         <hr />
         <p><strong>Bill to:</strong> {name}</p>
-        <table><thead><tr><th>Description</th><th>Amount</th></tr></thead><tbody><tr><td>{selectedInvoice.description || 'Dental service'}</td><td>{inr(selectedInvoice.subtotal ?? selectedInvoice.amount)}</td></tr></tbody></table>
+        <table><thead><tr><th>Description</th><th>Qty</th><th>Rate</th><th>Amount</th></tr></thead><tbody>{invoiceLines(selectedInvoice).map((line, index) => <tr key={index}><td>{line.description}</td><td>{line.quantity}</td><td>{inr(line.unitPrice)}</td><td>{inr(line.amount)}</td></tr>)}</tbody></table>
         <div className="invoice-breakdown"><p>Subtotal: {inr(selectedInvoice.subtotal ?? selectedInvoice.amount)}</p><p>GST ({Number(selectedInvoice.gstRate || 0)}%): {inr(selectedInvoice.gstAmount || 0)}</p><h3>Total: {inr(selectedInvoice.amount)}</h3><p>Status: {selectedInvoice.status || 'Unpaid'}</p></div>
         <div className="invoice-actions no-print"><button type="button" onClick={printInvoice}>Print / Save as PDF</button><button type="button" className="ghost" onClick={() => setSelectedInvoice(null)}>Close</button></div>
       </article>

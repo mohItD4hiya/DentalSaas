@@ -4,6 +4,7 @@ const jwt = require('jsonwebtoken'), bcrypt = require('bcryptjs');
 const { User, Patient, Visit, Appointment, Treatment, Invoice, Item } = require('./models');
 const app = express(); app.use(cors(), express.json({ limit: '10mb' }));
 const SECRET = process.env.JWT_SECRET || 'dev-secret';
+const validPhone = phone => phone === undefined || phone === null || phone === '' || (typeof phone === 'string' && /^\d{10}$/.test(phone));
 
 const auth = (req, res, next) => {
   try { req.user = jwt.verify((req.headers.authorization || '').replace('Bearer ', ''), SECRET); next(); }
@@ -32,6 +33,7 @@ app.post('/api/auth/patient/register', async (req, res) => {
   const phone = typeof req.body.phone === 'string' ? req.body.phone.trim() : '';
   const password = typeof req.body.password === 'string' ? req.body.password : '';
   if (!name || !email || !phone || !password) return res.status(400).json({ error: 'Name, email, phone, and password are required.' });
+  if (!/^\d{10}$/.test(phone)) return res.status(400).json({ error: 'Phone number must contain exactly 10 digits.' });
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return res.status(400).json({ error: 'Enter a valid email address.' });
   if (password.length < 8) return res.status(400).json({ error: 'Password must be at least 8 characters.' });
   if (await User.exists({ email })) return res.status(409).json({ error: 'An account with this email already exists.' });
@@ -53,8 +55,16 @@ app.post('/api/auth/patient/register', async (req, res) => {
 
 const crud = (path, Model, sort = { createdAt: -1 }) => {
   app.get(`/api/${path}`, auth, requireDoctor, async (_, res) => res.json(await Model.find().sort(sort)));
-  app.post(`/api/${path}`, auth, requireDoctor, async (req, res) => res.json(await Model.create(req.body)));
-  app.put(`/api/${path}/:id`, auth, requireDoctor, async (req, res) => res.json(await Model.findByIdAndUpdate(req.params.id, req.body, { new: true })));
+  app.post(`/api/${path}`, auth, requireDoctor, async (req, res) => {
+    if (path === 'patients' && !validPhone(req.body.phone)) return res.status(400).json({ error: 'Phone number must contain exactly 10 digits.' });
+    res.json(await Model.create(req.body));
+  });
+  app.put(`/api/${path}/:id`, auth, requireDoctor, async (req, res) => {
+    if (path === 'patients' && !validPhone(req.body.phone)) return res.status(400).json({ error: 'Phone number must contain exactly 10 digits.' });
+    const updated = await Model.findByIdAndUpdate(req.params.id, req.body, { new: true, runValidators: true });
+    if (!updated) return res.status(404).json({ error: 'Record not found.' });
+    res.json(updated);
+  });
   app.delete(`/api/${path}/:id`, auth, requireDoctor, async (req, res) => { await Model.findByIdAndDelete(req.params.id); res.json({ ok: true }); });
 };
 crud('patients', Patient); crud('appointments', Appointment, { date: 1, time: 1 });
