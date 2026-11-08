@@ -6,7 +6,10 @@ module.exports = {
     role: { type: String, enum: ['doctor', 'patient'], default: 'doctor' },
     patientId: { type: mongoose.Schema.Types.ObjectId, ref: 'Patient' },
   }),
-  Patient: M('Patient', { name: String, age: Number, phone: String, healthIssues: String, history: String }),
+  Patient: M('Patient', {
+    name: String, age: Number, phone: String, healthIssues: String, history: String,
+    appointmentRemindersEnabled: { type: Boolean, default: false },
+  }),
   Visit: M('Visit', {
     patient: { type: mongoose.Schema.Types.ObjectId, ref: 'Patient', required: true },
     date: { type: String, required: true }, reason: String,

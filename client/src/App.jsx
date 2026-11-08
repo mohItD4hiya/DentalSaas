@@ -33,6 +33,7 @@ function Icon({ name, size = 20 }) {
     patientsCount: <><circle cx="9" cy="8" r="3" /><path d="M3 20v-1a6 6 0 0 1 12 0v1M16 11a3 3 0 1 0 0-6M18 14a5 5 0 0 1 3 5v1" /></>,
     rupee: <><path d="M6 4h12M6 8h12M8 4c4 0 6 1.8 6 4s-2 4-6 4h-.5L16 20" /></>,
     tooth: <><path d="M12 4c-2-2-7-1-8 3-1 5 2 14 5 14 2 0 1-7 3-7s1 7 3 7c3 0 6-9 5-14-1-4-6-5-8-3Z" /></>,
+    mic: <><rect x="9" y="2" width="6" height="12" rx="3" /><path d="M5 10v2a7 7 0 0 0 14 0v-2M12 19v3M8 22h8" /></>,
   };
   return <svg aria-hidden="true" width={size} height={size} viewBox="0 0 24 24" {...common}>{paths[name] || paths.dashboard}</svg>;
 }
@@ -79,7 +80,6 @@ function Login({ onDone }) {
     <input required type="password" autoComplete={registering ? 'new-password' : 'current-password'} minLength={registering ? 8 : undefined} value={f.password} onChange={e => setF({ ...f, password: e.target.value })} placeholder={registering ? 'Create password (8+ characters)' : 'Password'} />
     {err && <p className="err" role="alert">{err}</p>}
     <button type="submit">{registering ? 'Create patient account' : 'Sign in'}</button>
-    {!registering && <p className="muted demo-login">Demo doctor: dr.smith@dentalsaas.com / smile123<br />Demo patient: aarav.patient@dentalsaas.com / patient123</p>}
   </form></div>;
 }
 
@@ -585,6 +585,8 @@ function PatientPortal({ name, onSignOut }) {
   const [appointments, setAppointments] = useState([]), [form, setForm] = useState(emptyBooking);
   const [records, setRecords] = useState({ visits: [], treatments: [], invoices: [] });
   const [tab, setTab] = useState('Overview'), [error, setError] = useState(''), [recordsError, setRecordsError] = useState(''), [notice, setNotice] = useState('');
+  const [appointmentRemindersEnabled, setAppointmentRemindersEnabled] = useState(false);
+  const [preferenceError, setPreferenceError] = useState(''), [preferenceSaving, setPreferenceSaving] = useState(false);
   const [rescheduling, setRescheduling] = useState(null), [rescheduleForm, setRescheduleForm] = useState({ date: todayDate(), time: '' });
   const [selectedInvoice, setSelectedInvoice] = useState(null);
   const [chatOpen, setChatOpen] = useState(false);
@@ -599,7 +601,21 @@ function PatientPortal({ name, onSignOut }) {
   useEffect(() => {
     loadAppointments().catch(e => setError(e.message));
     loadRecords().catch(e => setRecordsError(e.message));
+    api('patient/preferences').then(preferences => setAppointmentRemindersEnabled(preferences.appointmentRemindersEnabled)).catch(e => setPreferenceError(e.message));
   }, []);
+  const saveReminderPreference = async event => {
+    const enabled = event.target.checked;
+    setPreferenceSaving(true);
+    setPreferenceError('');
+    try {
+      const preferences = await api('patient/preferences', 'PUT', { appointmentRemindersEnabled: enabled });
+      setAppointmentRemindersEnabled(preferences.appointmentRemindersEnabled);
+    } catch (e) {
+      setPreferenceError(e.message);
+    } finally {
+      setPreferenceSaving(false);
+    }
+  };
   useEffect(() => {
     if (chatOpen) chatMessagesEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
   }, [chatMessages, chatOpen]);
@@ -735,7 +751,7 @@ function PatientPortal({ name, onSignOut }) {
       <button className="ghost" onClick={onSignOut}>Sign out</button>
     </header>
     <nav className="portal-tabs" aria-label="Patient portal sections">
-      {['Overview', 'Medical records', 'Billing'].map(section => <button key={section} type="button" className={tab === section ? 'on' : ''} aria-current={tab === section ? 'page' : undefined} onClick={() => setTab(section)}>{section}</button>)}
+      {['Overview', 'Medical records', 'Billing', 'Settings'].map(section => <button key={section} type="button" className={tab === section ? 'on' : ''} aria-current={tab === section ? 'page' : undefined} onClick={() => setTab(section)}>{section}</button>)}
     </nav>
     {error && <p className="err" role="alert">{error}</p>}
     {notice && <p className="portal-notice" role="status">{notice}</p>}
@@ -826,6 +842,15 @@ function PatientPortal({ name, onSignOut }) {
       </article>)}
       {!recordsError && !records.invoices.length && <p className="muted">No invoices are available yet.</p>}
     </section>}
+    {tab === 'Settings' && <section className="card portal-settings">
+      <div className="portal-section-heading"><div><h2>Appointment reminders</h2><p className="muted">Choose whether you would like to receive a reminder 24 hours before your appointment.</p></div></div>
+      <label className="reminder-preference">
+        <input type="checkbox" checked={appointmentRemindersEnabled} disabled={preferenceSaving} onChange={saveReminderPreference} />
+        <span>Send me WhatsApp / SMS appointment reminders (24 hours before)</span>
+      </label>
+      {preferenceError && <p className="err" role="alert">{preferenceError}</p>}
+      <p className="muted reminder-setup-note">Your preference is saved to your patient account. Automated delivery will begin after the clinic completes MSG91 setup.</p>
+    </section>}
     {selectedInvoice && <div className="invoice-modal portal-invoice-modal" role="dialog" aria-modal="true" aria-label="Invoice PDF preview">
       <article className="invoice-print">
         <header><div><h2>{CLINIC_NAME}</h2><p>Dental clinic invoice</p></div><div className="invoice-number"><strong>{invoiceNumber(selectedInvoice)}</strong><br />Date: {selectedInvoice.date}</div></header>
@@ -871,6 +896,8 @@ function PatientPortal({ name, onSignOut }) {
 }
 function Assistant() {
   const [msgs, setMsgs] = useState([{ r: 'ai', t: 'Hi Doctor. I can answer questions about clinic activity and share general oral-health information. For personal diagnosis or treatment advice, please examine the patient or refer to a dentist.' }]), [q, setQ] = useState('');
+  const [listening, setListening] = useState(false), [voiceMessage, setVoiceMessage] = useState('');
+  const recognitionRef = useRef(null);
   const ask = async text => {
     const t = text || q;
     if (!t) return;
@@ -883,10 +910,46 @@ function Assistant() {
       setMsgs(m => [...m, { r: 'ai', t: `I couldn't answer that right now: ${error.message}` }]);
     }
   };
+  const toggleVoiceInput = () => {
+    if (listening) {
+      recognitionRef.current?.stop();
+      return;
+    }
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      setVoiceMessage('Voice input is not supported by this browser. You can still type your question.');
+      return;
+    }
+    const recognition = new SpeechRecognition();
+    recognition.lang = 'en-IN';
+    recognition.interimResults = false;
+    recognition.maxAlternatives = 1;
+    recognition.onstart = () => {
+      setListening(true);
+      setVoiceMessage('Listening…');
+    };
+    recognition.onresult = event => {
+      const transcript = event.results[0][0].transcript.trim();
+      if (transcript) {
+        setQ(transcript);
+        setVoiceMessage(`Heard: “${transcript}”`);
+        ask(transcript);
+      }
+    };
+    recognition.onerror = event => {
+      setVoiceMessage(event.error === 'not-allowed'
+        ? 'Microphone access was denied. Allow microphone access or type your question.'
+        : `Voice input failed (${event.error}). You can still type your question.`);
+    };
+    recognition.onend = () => setListening(false);
+    recognitionRef.current = recognition;
+    recognition.start();
+  };
   return <><h2>AI Assistant</h2><div className="card chat">{msgs.map((m, i) => <p key={i} className={'bubble ' + m.r}>{m.t}</p>)}</div>
-    <div className="chips">{['How many patients do we have?', 'How many appointments are today?', 'What is this month’s revenue?', 'How much is unpaid?', 'Which supplies are low?', 'How many treatments are pending?', 'How often should patients brush?', 'How can patients care for their teeth?'].map(x => <button className="ghost" key={x} onClick={() => ask(x)}>{x}</button>)}</div>
-    <div className="card form"><input value={q} onChange={e => setQ(e.target.value)} onKeyDown={e => e.key === 'Enter' && ask()} placeholder="Ask anything about your clinic" /><button onClick={() => ask()}>Ask AI</button></div>
-    <p className="muted ai-privacy">General questions may be sent to Google Gemini when configured. Do not enter patient names, contact details, prescriptions, or other identifying health information. Clinic metric questions are answered locally.</p></>;
+    <div className="chips">{['How many patients do we have?', 'Which patients have a follow-up?', 'Which patients have follow-ups this week?', 'How many appointments are today?', 'What is this month’s revenue?', 'How much is unpaid?', 'Which supplies are low?', 'How many treatments are pending?', 'How often should patients brush?', 'How can patients care for their teeth?'].map(x => <button className="ghost" key={x} onClick={() => ask(x)}>{x}</button>)}</div>
+    <div className="card form assistant-compose"><input value={q} onChange={e => setQ(e.target.value)} onKeyDown={e => e.key === 'Enter' && ask()} placeholder="Ask anything about your clinic" /><button type="button" className="ghost voice-button" onClick={toggleVoiceInput} aria-label={listening ? 'Stop voice input' : 'Ask using voice'} title={listening ? 'Stop listening' : 'Ask using voice'}><Icon name="mic" size={19} /><span>{listening ? 'Listening' : 'Voice'}</span></button><button onClick={() => ask()}>Ask AI</button></div>
+    {voiceMessage && <p className="muted" role="status">{voiceMessage}</p>}
+    <p className="muted ai-privacy">Clinic-data questions are answered from local clinic records. General questions may be sent to Google Gemini when configured; never include identifying patient information. Voice recognition may be processed by your browser’s speech service.</p></>;
 }
 
 export default function App() {

@@ -163,6 +163,25 @@ app.post('/api/patient/appointments', auth, async (req, res) => {
   });
   res.status(201).json(appointment);
 });
+app.get('/api/patient/preferences', auth, async (req, res) => {
+  if (req.user.role !== 'patient' || !req.user.patientId) return res.status(403).json({ error: 'Patient account access is required.' });
+  const patient = await Patient.findById(req.user.patientId);
+  if (!patient) return res.status(404).json({ error: 'Patient profile was not found.' });
+  res.json({ appointmentRemindersEnabled: Boolean(patient.appointmentRemindersEnabled) });
+});
+app.put('/api/patient/preferences', auth, async (req, res) => {
+  if (req.user.role !== 'patient' || !req.user.patientId) return res.status(403).json({ error: 'Patient account access is required.' });
+  if (typeof req.body.appointmentRemindersEnabled !== 'boolean') {
+    return res.status(400).json({ error: 'Choose whether appointment reminders should be enabled.' });
+  }
+  const patient = await Patient.findByIdAndUpdate(
+    req.user.patientId,
+    { $set: { appointmentRemindersEnabled: req.body.appointmentRemindersEnabled } },
+    { new: true, runValidators: true },
+  );
+  if (!patient) return res.status(404).json({ error: 'Patient profile was not found.' });
+  res.json({ appointmentRemindersEnabled: Boolean(patient.appointmentRemindersEnabled) });
+});
 app.get('/api/patient/records', auth, async (req, res) => {
   if (req.user.role !== 'patient' || !req.user.patientId) return res.status(403).json({ error: 'Patient account access is required.' });
   const patient = await Patient.findById(req.user.patientId);
@@ -200,6 +219,47 @@ app.post('/api/ai', auth, requireDoctor, async (req, res) => {
   const question = typeof req.body.q === 'string' ? req.body.q.trim() : '';
   if (!question) return res.status(400).json({ error: 'Enter a question for the assistant.' });
   const s = await stats(), q = question.toLowerCase();
+  const isFollowUpQuestion = /follow[\s-]?ups?/.test(q) && /(patient|who|which|due|upcoming|overdue|have|has|list)/.test(q);
+  if (isFollowUpQuestion) {
+    const today = new Intl.DateTimeFormat('en-CA', {
+      timeZone: 'Asia/Kolkata', year: 'numeric', month: '2-digit', day: '2-digit',
+    }).format(new Date());
+    const asksThisWeek = /this week|this week's|next 7 days/.test(q);
+    let followUpFilter = {
+      followUp: { $exists: true, $nin: ['', null] },
+      status: { $not: /^(done|completed|cancelled)$/i },
+    };
+    let periodLabel = '';
+    if (asksThisWeek) {
+      const todayUtc = new Date(`${today}T00:00:00Z`);
+      const daysUntilSunday = (7 - todayUtc.getUTCDay()) % 7;
+      const weekEnd = new Date(todayUtc);
+      weekEnd.setUTCDate(weekEnd.getUTCDate() + daysUntilSunday);
+      const weekEndValue = weekEnd.toISOString().slice(0, 10);
+      followUpFilter = {
+        ...followUpFilter,
+        followUp: { $gte: today, $lte: weekEndValue },
+      };
+      periodLabel = ` scheduled from ${today} through ${weekEndValue}`;
+    }
+    const followUps = await Treatment.find({
+      ...followUpFilter,
+    }).sort({ followUp: 1 }).lean();
+    const patientIds = followUps.map(treatment => treatment.patientId).filter(Boolean);
+    const patients = await Patient.find({ _id: { $in: patientIds } }).select('_id name').lean();
+    const patientNames = new Map(patients.map(patient => [String(patient._id), patient.name]));
+    const entries = followUps.map(treatment => {
+      const name = (treatment.patientId && patientNames.get(String(treatment.patientId))) || treatment.patient || 'Unknown patient';
+      const timing = /^\d{4}-\d{2}-\d{2}$/.test(treatment.followUp) && treatment.followUp < today ? 'overdue' : 'due';
+      const details = [treatment.followUp, treatment.procedure, timing === 'overdue' ? 'overdue' : 'upcoming'].filter(Boolean).join(', ');
+      return `${name} (${details})`;
+    });
+    return res.json({
+      answer: entries.length
+        ? `Patients with active follow-ups${periodLabel}: ${entries.join('; ')}.`
+        : asksThisWeek ? `There are no active follow-ups${periodLabel}.` : 'There are no active follow-ups recorded.',
+    });
+  }
   const isClinicDataQuestion =
     (/patient/.test(q) && /how many|number|count|total|clinic records/.test(q)) ||
     (/appointment|schedule/.test(q) && /today|upcoming|next|how many|clinic/.test(q)) ||

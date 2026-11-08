@@ -130,6 +130,8 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
 .tag.confirmed{background:#eee5f7;color:#684280}.tag.booked{background:#f2d7ff;color:#71358d}
 .chat{min-height:260px;display:flex;flex-direction:column;gap:.5rem}.bubble{margin:0;padding:.7rem 1rem;border-radius:14px;max-width:75%}
 .bubble.ai{background:#fcf8fe;border:1px solid var(--line)}.bubble.me{background:#7c4199;color:#fff;align-self:flex-end}.chips{display:flex;gap:.5rem;flex-wrap:wrap;margin-bottom:1rem}
+.assistant-compose{align-items:center}
+.voice-button{display:inline-flex;align-items:center;justify-content:center;gap:.4rem;white-space:nowrap}
 .ai-privacy{font-size:.85rem;max-width:850px}
 .login{display:grid;place-items:center;min-height:100vh;padding:1rem}
 .login .card{width:min(400px,100%);padding:1.6rem;display:flex;flex-direction:column;gap:.7rem;border-color:#eadcf0;box-shadow:0 18px 55px rgba(80,42,96,.12)}
@@ -154,6 +156,10 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
 .portal-booking label{display:flex;flex-direction:column;gap:.35rem;font-weight:600;font-size:.9rem}
 .portal-booking input,.portal-booking select{width:100%;flex:auto}
 .portal-notice{margin:0;color:#32805b}
+.portal-settings{max-width:760px}
+.reminder-preference{display:flex;align-items:flex-start;gap:.7rem;padding:1rem;background:#fcf8fe;border:1px solid var(--line);border-radius:12px;font-weight:650;line-height:1.5}
+.reminder-preference input{width:20px;height:20px;flex:none;margin:.1rem 0 0;accent-color:#7c4199}
+.reminder-setup-note{font-size:.87rem;margin:.75rem 0 0}
 .portal-appointment{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:.65rem 1rem;padding:1rem 0;border-bottom:1px solid var(--line)}
 .portal-appointment:last-child{border-bottom:0}.portal-appointment p{margin:.3rem 0 0;color:#807287}.portal-appointment-actions{grid-column:1/-1;display:flex;gap:.5rem;flex-wrap:wrap}
 .portal-emergency{display:flex;align-items:center;justify-content:space-between;gap:1.25rem;border-color:#f0d8df;background:linear-gradient(130deg,#fff 40%,#fff8f9)}
