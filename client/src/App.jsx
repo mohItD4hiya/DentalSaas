@@ -26,6 +26,7 @@ function Icon({ name, size = 20 }) {
     dashboard: <><rect x="3" y="3" width="8" height="8" rx="1.5" /><rect x="13" y="3" width="8" height="5" rx="1.5" /><rect x="13" y="10" width="8" height="11" rx="1.5" /><rect x="3" y="13" width="8" height="8" rx="1.5" /></>,
     calendar: <><rect x="3" y="5" width="18" height="16" rx="2" /><path d="M16 3v4M8 3v4M3 10h18M8 14h.01M12 14h.01M16 14h.01M8 17h.01M12 17h.01" /></>,
     patients: <><path d="M16 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" /><circle cx="10" cy="7" r="4" /><path d="M20 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" /></>,
+    branches: <><path d="M3 21h18M5 21V7l7-4 7 4v14M9 21v-7h6v7M9 9h.01M15 9h.01" /></>,
     billing: <><rect x="4" y="3" width="16" height="18" rx="2" /><path d="M8 7h8M8 11h8M8 15h3M15 15h1M8 18h3" /></>,
     inventory: <><path d="m12 3 9 5-9 5-9-5 9-5Z" /><path d="m3 12 9 5 9-5M3 16l9 5 9-5M12 13v4" /></>,
     reports: <><path d="M4 19V5M4 19h17" /><path d="m7 15 4-4 3 2 5-6" /><path d="M17 7h2v2" /></>,
@@ -38,26 +39,37 @@ function Icon({ name, size = 20 }) {
   return <svg aria-hidden="true" width={size} height={size} viewBox="0 0 24 24" {...common}>{paths[name] || paths.dashboard}</svg>;
 }
 const RESOURCES = {
-  Appointments: { path: 'appointments', fields: [['patient', 'Patient'], ['date', 'Date', 'date'], ['time', 'Time', 'time'], ['type', 'Type'], ['status', 'Status', APPOINTMENT_STATUS]] },
+  Appointments: { path: 'appointments', fields: [['patient', 'Patient'], ['branchName', 'Branch'], ['date', 'Date', 'date'], ['time', 'Time', 'time'], ['type', 'Type'], ['status', 'Status', APPOINTMENT_STATUS]] },
   Inventory: { path: 'inventory', fields: [['name', 'Item'], ['qty', 'In stock', 'number'], ['minQty', 'Reorder at', 'number']] },
 };
 
 function Login({ onDone }) {
   const [registering, setRegistering] = useState(false);
-  const [f, setF] = useState({ name: '', email: 'dr.smith@dentalsaas.com', phone: '', password: 'smile123' });
+  const [activationToken] = useState(() => new URLSearchParams(window.location.search).get('activate') || '');
+  const [f, setF] = useState(() => ({ name: '', email: 'dr.smith@dentalsaas.com', phone: '', password: activationToken ? '' : 'smile123' }));
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [err, setErr] = useState('');
   const go = async e => {
     e.preventDefault();
     setErr('');
+    if (activationToken && f.password !== confirmPassword) {
+      setErr('The passwords do not match.');
+      return;
+    }
     try {
-      const d = registering
-        ? await api('auth/patient/register', 'POST', f)
-        : await api('auth/login', 'POST', { email: f.email, password: f.password });
+      const d = activationToken
+        ? await api('auth/patient/activate', 'POST', { token: activationToken, password: f.password })
+        : registering
+          ? await api('auth/patient/register', 'POST', f)
+          : await api('auth/login', 'POST', { email: f.email, password: f.password });
+      if (activationToken) window.history.replaceState({}, '', window.location.pathname);
       localStorage.token = d.token;
       localStorage.name = d.name;
       localStorage.role = d.role;
       if (d.patientId) localStorage.patientId = d.patientId;
       else localStorage.removeItem('patientId');
+      if (d.branchId) localStorage.branchId = d.branchId;
+      else localStorage.removeItem('branchId');
       onDone(d);
     } catch (error) {
       setErr(error.message);
@@ -73,25 +85,49 @@ function Login({ onDone }) {
   return <div className="login"><form className="card" onSubmit={go}>
     <img className="clinic-logo login-logo" src="/clinic-logo.png" alt={`${CLINIC_NAME} logo`} />
     <h1>{CLINIC_NAME}</h1><p className="muted">Appointments and patient care for your Indian dental practice</p>
-    <div className="auth-mode"><button type="button" className={!registering ? '' : 'ghost'} onClick={() => changeMode(false)}>Sign in</button><button type="button" className={registering ? '' : 'ghost'} onClick={() => changeMode(true)}>Patient registration</button></div>
+    {!activationToken && <div className="auth-mode"><button type="button" className={!registering ? '' : 'ghost'} onClick={() => changeMode(false)}>Sign in</button><button type="button" className={registering ? '' : 'ghost'} onClick={() => changeMode(true)}>Patient registration</button></div>}
     {registering && <input required autoComplete="name" value={f.name} onChange={e => setF({ ...f, name: e.target.value })} placeholder="Full name" />}
     {registering && <input required type="tel" autoComplete="tel" inputMode="numeric" pattern="[0-9]{10}" maxLength={10} title="Enter a 10-digit phone number" value={f.phone} onChange={e => setF({ ...f, phone: e.target.value })} placeholder="10-digit phone number" />}
-    <input required type="email" autoComplete="email" value={f.email} onChange={e => setF({ ...f, email: e.target.value })} placeholder="Email" />
-    <input required type="password" autoComplete={registering ? 'new-password' : 'current-password'} minLength={registering ? 8 : undefined} value={f.password} onChange={e => setF({ ...f, password: e.target.value })} placeholder={registering ? 'Create password (8+ characters)' : 'Password'} />
+    {activationToken && <h2 className="activation-heading">Activate your patient portal</h2>}
+    {!activationToken && <input required type="email" autoComplete="email" value={f.email} onChange={e => setF({ ...f, email: e.target.value })} placeholder="Email" />}
+    <input required type="password" autoComplete={registering || activationToken ? 'new-password' : 'current-password'} minLength={registering || activationToken ? 8 : undefined} value={f.password} onChange={e => setF({ ...f, password: e.target.value })} placeholder={registering || activationToken ? 'Create password (8+ characters)' : 'Password'} />
+    {activationToken && <input required type="password" autoComplete="new-password" minLength={8} value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} placeholder="Confirm password" />}
     {err && <p className="err" role="alert">{err}</p>}
-    <button type="submit">{registering ? 'Create patient account' : 'Sign in'}</button>
+    <button type="submit">{activationToken ? 'Activate account' : registering ? 'Create patient account' : 'Sign in'}</button>
   </form></div>;
 }
 
 function Resource({ title, path, fields }) {
   const [rows, setRows] = useState([]), [form, setForm] = useState({}), [q, setQ] = useState('');
+  const [branches, setBranches] = useState([]), [error, setError] = useState('');
   const load = () => api(path).then(setRows); useEffect(() => { load(); }, [path]);
-  const add = async () => { await api(path, 'POST', form); setForm({}); load(); };
-  const del = async id => { await api(`${path}/${id}`, 'DELETE'); load(); };
+  useEffect(() => {
+    if (path === 'appointments') api('branches').then(setBranches).catch(e => setError(e.message));
+  }, [path]);
+  const add = async () => {
+    setError('');
+    try {
+      await api(path, 'POST', { ...form, ...(path === 'appointments' ? { branchId: form.branchId || branches.find(branch => branch.isActive)?._id } : {}) });
+      setForm({});
+      await load();
+    } catch (e) {
+      setError(e.message);
+    }
+  };
+  const del = async id => {
+    setError('');
+    try { await api(`${path}/${id}`, 'DELETE'); await load(); }
+    catch (e) { setError(e.message); }
+  };
   const updateRow = async (id, patch) => {
     const row = rows.find(r => r._id === id); if (!row) return;
-    await api(`${path}/${id}`, 'PUT', { ...row, ...patch });
-    load();
+    setError('');
+    try {
+      await api(`${path}/${id}`, 'PUT', { ...row, ...patch });
+      await load();
+    } catch (e) {
+      setError(e.message);
+    }
   };
   const updateStatus = async (id, status) => updateRow(id, { status });
   const consumeStock = async id => {
@@ -102,21 +138,24 @@ function Resource({ title, path, fields }) {
   const handleQtyChange = async (id, value) => {
     const row = rows.find(r => r._id === id); if (!row) return;
     const qty = Math.max(0, Number(value) || 0);
-    await api(`${path}/${id}`, 'PUT', { ...row, qty });
-    load();
+    await updateRow(id, { qty });
   };
   const shown = rows.filter(r => JSON.stringify(r).toLowerCase().includes(q.toLowerCase()));
   const rowDefaults = title === 'Billing' ? { insurance: INDIAN_INSURERS[0] } : {};
   return <>
     <h2>{title}</h2>
-    <div className="card form">{fields.map(([k, l, t]) => Array.isArray(t)
+    {error && <p className="err" role="alert">{error}</p>}
+    <div className="card form">{fields.filter(([k]) => !(path === 'appointments' && k === 'branchName')).map(([k, l, t]) => Array.isArray(t)
       ? <select key={k} value={form[k] || rowDefaults[k] || ''} onChange={e => setForm({ ...form, [k]: e.target.value })}><option value="">{l}</option>{t.map(o => <option key={o}>{o}</option>)}</select>
       : <input key={k} type={t || 'text'} placeholder={l} title={l} value={form[k] || ''} onChange={e => setForm({ ...form, [k]: e.target.value })} />)}
+      {path === 'appointments' && <select aria-label="Appointment branch" required value={form.branchId || branches.find(branch => branch.isActive)?._id || ''} onChange={e => setForm({ ...form, branchId: e.target.value })}><option value="">Select branch</option>{branches.filter(branch => branch.isActive).map(branch => <option key={branch._id} value={branch._id}>{branch.name}</option>)}</select>}
       <button onClick={add}>Add {title.replace(/s$/, '').toLowerCase()}</button></div>
     <input className="search" placeholder={`Search ${title.toLowerCase()}`} value={q} onChange={e => setQ(e.target.value)} />
     <div className="card scroll"><table><thead><tr>{fields.map(([k, l]) => <th key={k}>{l}</th>)}<th /></tr></thead>
       <tbody>{shown.map(r => <tr key={r._id}>{fields.map(([k, , t]) => <td key={k}>
-        {k === 'status' ? <div className="status-wrap">
+        {path === 'appointments' && k === 'branchName' ? <select aria-label={`${r.patient} appointment branch`} value={r.branchId || ''} onChange={e => updateRow(r._id, { branchId: e.target.value })}>
+          {branches.filter(branch => branch.isActive || branch._id === r.branchId).map(branch => <option key={branch._id} value={branch._id}>{branch.name}{branch.isActive ? '' : ' (Inactive)'}</option>)}
+        </select> : k === 'status' ? <div className="status-wrap">
           <span className={'tag ' + String(r[k] || '').toLowerCase()}>{r[k] || 'Booked'}</span>
           <select className="status-select" value={r[k] || ''} onChange={e => updateStatus(r._id, e.target.value)}>
             {Array.isArray(t) ? t.map(v => <option key={v} value={v}>{v}</option>) : <option value={r[k]}>{r[k]}</option>}
@@ -128,14 +167,106 @@ function Resource({ title, path, fields }) {
       {!shown.length && <p className="muted pad">Nothing here yet. Add your first {title.replace(/s$/, '').toLowerCase()} above.</p>}</div></>;
 }
 
+function Branches() {
+  const emptyBranch = () => ({ name: '', address: '', phone: '' });
+  const [branches, setBranches] = useState([]);
+  const [form, setForm] = useState(emptyBranch);
+  const [doctorForm, setDoctorForm] = useState({ branchId: '', name: '', email: '' });
+  const [createdDoctor, setCreatedDoctor] = useState(null);
+  const [editing, setEditing] = useState(null);
+  const [error, setError] = useState('');
+  const load = async () => setBranches(await api('branches'));
+  useEffect(() => { load().catch(e => setError(e.message)); }, []);
+  const save = async event => {
+    event.preventDefault();
+    setError('');
+    try {
+      if (form.phone && !/^\d{10}$/.test(form.phone)) throw new Error('Branch phone number must contain exactly 10 digits.');
+      if (editing) {
+        await api(`branches/${editing._id}`, 'PUT', { ...form, isActive: editing.isActive });
+      } else {
+        await api('branches', 'POST', form);
+      }
+      setForm(emptyBranch());
+      setEditing(null);
+      setError('');
+      await load();
+    } catch (e) {
+      setError(e.message);
+    }
+  };
+  const edit = branch => {
+    setEditing(branch);
+    setForm({ name: branch.name || '', address: branch.address || '', phone: branch.phone || '' });
+    setError('');
+  };
+  const toggleActive = async branch => {
+    setError('');
+    try {
+      await api(`branches/${branch._id}`, 'PUT', { name: branch.name, address: branch.address, phone: branch.phone, isActive: !branch.isActive });
+      await load();
+    } catch (e) {
+      setError(e.message);
+    }
+  };
+  const createDoctor = async event => {
+    event.preventDefault();
+    setError('');
+    setCreatedDoctor(null);
+    try {
+      const result = await api(`branches/${doctorForm.branchId}/doctors`, 'POST', {
+        name: doctorForm.name, email: doctorForm.email,
+      });
+      setCreatedDoctor(result);
+      setDoctorForm(current => ({ ...current, name: '', email: '' }));
+      await load();
+    } catch (e) {
+      setError(e.message);
+    }
+  };
+  return <>
+    <h2>Clinic branches</h2>
+    <p className="muted">Branches in this clinic share the same patient records, visit history, treatments and invoices. Appointments are booked at a specific branch.</p>
+    <form className="card form" onSubmit={save}>
+      <input required placeholder="Branch name" value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} />
+      <input placeholder="Address (optional)" value={form.address} onChange={e => setForm({ ...form, address: e.target.value })} />
+      <input type="tel" inputMode="numeric" pattern="[0-9]{10}" maxLength={10} placeholder="10-digit phone (optional)" value={form.phone} onChange={e => setForm({ ...form, phone: e.target.value })} />
+      <button type="submit">{editing ? 'Save branch' : 'Add branch'}</button>
+      {editing && <button type="button" className="ghost" onClick={() => { setEditing(null); setForm(emptyBranch()); }}>Cancel edit</button>}
+    </form>
+    {error && <p className="err" role="alert">{error}</p>}
+    <h3>Branch doctor accounts</h3>
+    <form className="card form" onSubmit={createDoctor}>
+      <select required aria-label="Doctor branch" value={doctorForm.branchId} onChange={e => setDoctorForm({ ...doctorForm, branchId: e.target.value })}>
+        <option value="">Select branch</option>{branches.filter(branch => branch.isActive).map(branch => <option key={branch._id} value={branch._id}>{branch.name}</option>)}
+      </select>
+      <input required placeholder="Doctor name" value={doctorForm.name} onChange={e => setDoctorForm({ ...doctorForm, name: e.target.value })} />
+      <input required type="email" placeholder="Doctor email" value={doctorForm.email} onChange={e => setDoctorForm({ ...doctorForm, email: e.target.value })} />
+      <button type="submit">Create doctor account</button>
+    </form>
+    {createdDoctor && <p className="card pad" role="status">
+      Account created for <strong>{createdDoctor.doctor.name}</strong> ({createdDoctor.doctor.email}).
+      Temporary password: <strong>{createdDoctor.temporaryPassword}</strong>. Save and share it securely; it will not be shown again.
+    </p>}
+    <div className="card scroll"><table><thead><tr><th>Branch</th><th>Address</th><th>Phone</th><th>Status</th><th>Doctors</th><th>Actions</th></tr></thead>
+      <tbody>{branches.map(branch => <tr key={branch._id}>
+        <td>{branch.name}</td><td>{branch.address || '—'}</td><td>{branch.phone || '—'}</td><td>{branch.isActive ? 'Active' : 'Inactive'}</td>
+        <td>{(branch.doctors || []).length ? branch.doctors.map(doctor => <div key={doctor._id}>{doctor.name} · {doctor.email}</div>) : 'No doctor assigned'}</td>
+        <td><div className="patient-actions"><button type="button" className="ghost mini" onClick={() => edit(branch)}>Edit</button><button type="button" className="ghost mini" onClick={() => toggleActive(branch)}>{branch.isActive ? 'Deactivate' : 'Activate'}</button></div></td>
+      </tr>)}</tbody></table>
+      {!branches.length && <p className="muted pad">No branches have been added.</p>}</div>
+  </>;
+}
+
 function Patients() {
-  const emptyPatient = () => ({ name: '', age: '', phone: '', healthIssues: '' });
+  const emptyPatient = () => ({ name: '', age: '', phone: '', email: '', healthIssues: '' });
   const emptyVisit = () => ({ date: todayDate(), reason: '', prescription: '', prescriptionPdf: '', prescriptionFilename: '', notes: '' });
   const [patients, setPatients] = useState([]), [form, setForm] = useState(emptyPatient);
   const [search, setSearch] = useState(''), [selectedPatient, setSelectedPatient] = useState(null);
   const [visits, setVisits] = useState([]), [visitForm, setVisitForm] = useState(emptyVisit);
   const [error, setError] = useState(''), [visitError, setVisitError] = useState('');
   const [editingPatient, setEditingPatient] = useState(null), [editForm, setEditForm] = useState(emptyPatient), [editError, setEditError] = useState('');
+  const [invitation, setInvitation] = useState(null), [invitationError, setInvitationError] = useState(''), [invitationCopied, setInvitationCopied] = useState(false);
   const [editingVisitId, setEditingVisitId] = useState(null), [editVisitForm, setEditVisitForm] = useState(emptyVisit);
   const loadPatients = async () => setPatients(await api('patients'));
   useEffect(() => { loadPatients().catch(e => setError(e.message)); }, []);
@@ -175,7 +306,7 @@ function Patients() {
   };
   const editPatient = patient => {
     setEditingPatient(patient);
-    setEditForm({ name: patient.name || '', age: patient.age ?? '', phone: patient.phone || '', healthIssues: patient.healthIssues || '' });
+    setEditForm({ name: patient.name || '', age: patient.age ?? '', phone: patient.phone || '', email: patient.email || '', healthIssues: patient.healthIssues || '' });
     setEditError('');
   };
   const savePatient = async event => {
@@ -191,12 +322,36 @@ function Patients() {
         name: editForm.name.trim(),
         age: editForm.age === '' ? undefined : Number(editForm.age),
         phone: editForm.phone.trim(),
+        email: editForm.email.trim().toLowerCase(),
         healthIssues: editForm.healthIssues.trim(),
       });
       await loadPatients();
       setEditingPatient(null);
     } catch (e) {
       setEditError(e.message);
+    }
+  };
+  const createInvitation = async patient => {
+    setInvitationError('');
+    setInvitationCopied(false);
+    try {
+      const result = await api(`patients/${patient._id}/invitation`, 'POST', {});
+      const activationUrl = new URL(window.location.href);
+      activationUrl.search = '';
+      activationUrl.searchParams.set('activate', result.token);
+      setInvitation({ patientName: patient.name, url: activationUrl.toString(), expiresAt: result.expiresAt });
+    } catch (e) {
+      setInvitationError(e.message);
+    }
+  };
+  const copyInvitation = async () => {
+    if (!invitation) return;
+    try {
+      await navigator.clipboard.writeText(invitation.url);
+      setInvitationCopied(true);
+      setInvitationError('');
+    } catch {
+      setInvitationError('Could not copy automatically. Select and copy the link above.');
     }
   };
   const handlePrescriptionUpload = (event, updateForm) => {
@@ -264,18 +419,23 @@ function Patients() {
   const shown = patients.filter(patient => JSON.stringify(patient).toLowerCase().includes(search.toLowerCase()));
   return <>
     <h2>Patients</h2>
+    <p className="muted">Add an email to a patient record, then create an activation link so the patient can set a password and access their existing clinic data.</p>
     <form className="card form" onSubmit={addPatient}>
       <input required placeholder="Patient name" value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} />
       <input type="number" min="0" placeholder="Age" value={form.age} onChange={e => setForm({ ...form, age: e.target.value })} />
       <input type="tel" inputMode="numeric" pattern="[0-9]{10}" maxLength={10} title="Enter a 10-digit phone number, or leave blank" placeholder="10-digit phone (optional)" value={form.phone} onChange={e => setForm({ ...form, phone: e.target.value })} />
+      <input type="email" autoComplete="email" placeholder="Patient email (optional)" value={form.email} onChange={e => setForm({ ...form, email: e.target.value })} />
       <input maxLength={500} placeholder="Known health issues (e.g. diabetes, allergies)" value={form.healthIssues} onChange={e => setForm({ ...form, healthIssues: e.target.value })} />
       <button type="submit">Add patient</button>
     </form>
     {error && <p className="err" role="alert">{error}</p>}
     <input className="search" placeholder="Search patients" value={search} onChange={e => setSearch(e.target.value)} />
-    <div className="card scroll"><table><thead><tr><th>Name</th><th>Age</th><th>Phone</th><th>Known health issues</th><th>Visit notes</th><th>Actions</th></tr></thead>
+    {invitationError && <p className="err" role="alert">{invitationError}</p>}
+    <div className="card scroll"><table><thead><tr><th>Name</th><th>Age</th><th>Phone</th><th>Email</th><th>Portal access</th><th>Known health issues</th><th>Visit notes</th><th>Actions</th></tr></thead>
       <tbody>{shown.map(patient => <tr key={patient._id}>
-        <td>{patient.name}</td><td>{patient.age || '—'}</td><td>{patient.phone || '—'}</td><td className="health-issues-cell">{patient.healthIssues || '—'}</td>
+        <td>{patient.name}</td><td>{patient.age || '—'}</td><td>{patient.phone || '—'}</td><td>{patient.email || '—'}</td>
+        <td>{patient.portalAccount ? 'Active' : patient.email ? <button className="ghost mini" onClick={() => createInvitation(patient)}>Create activation link</button> : 'Email needed'}</td>
+        <td className="health-issues-cell">{patient.healthIssues || '—'}</td>
         <td><button className="ghost mini" onClick={() => setSelectedPatient(patient)}>Open visit notebook</button></td>
         <td><div className="patient-actions"><button className="ghost mini" onClick={() => editPatient(patient)}>Edit</button><button className="ghost mini" onClick={() => deletePatient(patient)}>Delete</button></div></td>
       </tr>)}</tbody></table>
@@ -288,10 +448,22 @@ function Patients() {
         <label>Patient name<input required value={editForm.name} onChange={e => setEditForm({ ...editForm, name: e.target.value })} /></label>
         <label>Age<input type="number" min="0" value={editForm.age} onChange={e => setEditForm({ ...editForm, age: e.target.value })} /></label>
         <label>Phone (10 digits)<input type="tel" inputMode="numeric" pattern="[0-9]{10}" maxLength={10} title="Enter a 10-digit phone number, or leave blank" value={editForm.phone} onChange={e => setEditForm({ ...editForm, phone: e.target.value })} /></label>
+        <label>Email<input type="email" autoComplete="email" value={editForm.email} onChange={e => setEditForm({ ...editForm, email: e.target.value })} /></label>
         <label>Known health issues<textarea maxLength={500} rows="3" value={editForm.healthIssues} onChange={e => setEditForm({ ...editForm, healthIssues: e.target.value })} placeholder="e.g. Diabetes, hypertension, allergies" /></label>
         {editError && <p className="err" role="alert">{editError}</p>}
         <div className="patient-edit-actions"><button type="button" className="ghost" onClick={() => setEditingPatient(null)}>Cancel</button><button type="submit">Save changes</button></div>
       </form>
+    </div>}
+    {invitation && <div className="invoice-modal invitation-modal" role="dialog" aria-modal="true" aria-label="Patient activation link">
+      <section className="patient-edit-form">
+        <header className="visit-header"><div><h2>Patient activation link</h2><p className="muted">For {invitation.patientName}</p></div><button type="button" className="ghost" onClick={() => setInvitation(null)}>Close</button></header>
+        <p>Share this link securely with the patient. It expires in 24 hours and can be used once. The app does not send email automatically.</p>
+        <input aria-label="Activation link" readOnly value={invitation.url} onFocus={event => event.target.select()} />
+        <p className="muted">Expires {new Date(invitation.expiresAt).toLocaleString()}</p>
+        {invitationError && <p className="err" role="alert">{invitationError}</p>}
+        {invitationCopied && <p className="portal-notice" role="status">Activation link copied.</p>}
+        <div className="patient-edit-actions"><button type="button" onClick={copyInvitation}>Copy link</button></div>
+      </section>
     </div>}
     {selectedPatient && <div className="invoice-modal visit-modal" role="dialog" aria-modal="true" aria-label={`${selectedPatient.name} visit notebook`}>
       <section className="visit-notebook">
@@ -497,7 +669,7 @@ function Dashboard({ s }) {
     <div className="dashboard-panels">
       <section className="card dashboard-panel"><div className="panel-heading"><div><h2>Upcoming appointments</h2><p className="muted">Your next scheduled visits</p></div><span className="panel-count">{s.upcoming.length}</span></div>
         {s.upcoming.length ? <div className="appointment-list">{s.upcoming.map((appointment, i) => <article className="appointment-item" key={appointment._id || i}>
-          <div className="appointment-time">{appointment.time}</div><div className="appointment-info"><strong>{appointment.patient}</strong><span>{appointment.type}</span></div>
+          <div className="appointment-time">{appointment.time}</div><div className="appointment-info"><strong>{appointment.patient}</strong><span>{appointment.type} · {appointment.branchName}</span></div>
           <span className={'tag ' + String(appointment.status || 'Booked').toLowerCase()}>{appointment.status || 'Booked'}</span>
         </article>)}</div> : <p className="muted empty-state">No upcoming appointments.</p>}
       </section>
@@ -581,13 +753,15 @@ function PatientPortal({ name, onSignOut }) {
     '⏱️ What are clinic timings and location?',
     '🚨 Emergency dental care tips',
   ];
-  const emptyBooking = () => ({ date: todayDate(), time: '', type: '' });
+  const emptyBooking = () => ({ date: todayDate(), time: '', type: '', branchId: '' });
   const [appointments, setAppointments] = useState([]), [form, setForm] = useState(emptyBooking);
+  const [branches, setBranches] = useState([]);
+  const [branchesError, setBranchesError] = useState('');
   const [records, setRecords] = useState({ visits: [], treatments: [], invoices: [] });
   const [tab, setTab] = useState('Overview'), [error, setError] = useState(''), [recordsError, setRecordsError] = useState(''), [notice, setNotice] = useState('');
   const [appointmentRemindersEnabled, setAppointmentRemindersEnabled] = useState(false);
   const [preferenceError, setPreferenceError] = useState(''), [preferenceSaving, setPreferenceSaving] = useState(false);
-  const [rescheduling, setRescheduling] = useState(null), [rescheduleForm, setRescheduleForm] = useState({ date: todayDate(), time: '' });
+  const [rescheduling, setRescheduling] = useState(null), [rescheduleForm, setRescheduleForm] = useState({ date: todayDate(), time: '', branchId: '' });
   const [selectedInvoice, setSelectedInvoice] = useState(null);
   const [chatOpen, setChatOpen] = useState(false);
   const [chatInput, setChatInput] = useState('');
@@ -601,6 +775,10 @@ function PatientPortal({ name, onSignOut }) {
   useEffect(() => {
     loadAppointments().catch(e => setError(e.message));
     loadRecords().catch(e => setRecordsError(e.message));
+    api('branches').then(branchList => {
+      setBranches(branchList);
+      setForm(current => ({ ...current, branchId: current.branchId || branchList[0]?._id || '' }));
+    }).catch(e => setBranchesError(e.message));
     api('patient/preferences').then(preferences => setAppointmentRemindersEnabled(preferences.appointmentRemindersEnabled)).catch(e => setPreferenceError(e.message));
   }, []);
   const saveReminderPreference = async event => {
@@ -625,7 +803,7 @@ function PatientPortal({ name, onSignOut }) {
     setNotice('');
     try {
       await api('patient/appointments', 'POST', form);
-      setForm(emptyBooking());
+      setForm({ ...emptyBooking(), branchId: branches[0]?._id || '' });
       await loadAppointments();
       setNotice('Appointment request sent. It will be confirmed by clinic staff.');
     } catch (e) {
@@ -646,7 +824,7 @@ function PatientPortal({ name, onSignOut }) {
   };
   const openReschedule = appointment => {
     setRescheduling(appointment);
-    setRescheduleForm({ date: appointment.date || todayDate(), time: appointment.time || '' });
+    setRescheduleForm({ date: appointment.date || todayDate(), time: appointment.time || '', branchId: appointment.branchId || branches[0]?._id || '' });
     setError('');
     setNotice('');
   };
@@ -767,6 +945,12 @@ function PatientPortal({ name, onSignOut }) {
               {['09:00', '10:30', '12:00', '14:00', '16:00'].map(time => <option key={time} value={time}>{time}</option>)}
             </select>
           </label>
+          <label>Clinic branch
+            <select required value={form.branchId} onChange={e => setForm({ ...form, branchId: e.target.value })}>
+              <option value="">Select a branch</option>
+              {branches.map(branch => <option key={branch._id} value={branch._id}>{branch.name}</option>)}
+            </select>
+          </label>
           <label>Reason for visit
             <select required value={form.type} onChange={e => setForm({ ...form, type: e.target.value })}>
               <option value="">Select a reason</option>
@@ -774,11 +958,12 @@ function PatientPortal({ name, onSignOut }) {
             </select>
           </label>
           <button type="submit">Request appointment</button>
+          {branchesError && <p className="err" role="alert">{branchesError}</p>}
         </form>
         <section className="card portal-appointments">
           <h2>My appointments</h2>
           {appointments.length ? appointments.map(appointment => <article className="portal-appointment" key={appointment._id}>
-            <div className="portal-appointment-info"><strong>{appointment.date} at {appointment.time}</strong><p>{appointment.type}</p></div>
+            <div className="portal-appointment-info"><strong>{appointment.date} at {appointment.time}</strong><p>{appointment.type} · {appointment.branchName}</p></div>
             <span className={'tag ' + statusLabel(appointment.status).toLowerCase()}>{statusLabel(appointment.status)}</span>
             {canChangeAppointment(appointment) && <div className="portal-appointment-actions">
               <button type="button" className="ghost mini" onClick={() => openReschedule(appointment)}>Reschedule</button>
@@ -809,6 +994,7 @@ function PatientPortal({ name, onSignOut }) {
           <header className="visit-header"><div><h2>Reschedule appointment</h2><p className="muted">{rescheduling.type}</p></div><button type="button" className="ghost" onClick={() => setRescheduling(null)}>Close</button></header>
           <label>Date<input required type="date" min={todayDate()} value={rescheduleForm.date} onChange={e => setRescheduleForm({ ...rescheduleForm, date: e.target.value })} /></label>
           <label>Available time<select required value={rescheduleForm.time} onChange={e => setRescheduleForm({ ...rescheduleForm, time: e.target.value })}><option value="">Select a time</option>{['09:00', '10:30', '12:00', '14:00', '16:00'].map(time => <option key={time} value={time}>{time}</option>)}</select></label>
+          <label>Clinic branch<select required value={rescheduleForm.branchId} onChange={e => setRescheduleForm({ ...rescheduleForm, branchId: e.target.value })}><option value="">Select a branch</option>{branches.map(branch => <option key={branch._id} value={branch._id}>{branch.name}</option>)}</select></label>
           {error && <p className="err" role="alert">{error}</p>}
           <div className="patient-edit-actions"><button type="button" className="ghost" onClick={() => setRescheduling(null)}>Cancel</button><button type="submit">Send reschedule request</button></div>
         </form>
@@ -849,7 +1035,7 @@ function PatientPortal({ name, onSignOut }) {
         <span>Send me WhatsApp / SMS appointment reminders (24 hours before)</span>
       </label>
       {preferenceError && <p className="err" role="alert">{preferenceError}</p>}
-      <p className="muted reminder-setup-note">Your preference is saved to your patient account. Automated delivery will begin after the clinic completes MSG91 setup.</p>
+      <p className="muted reminder-setup-note">This feature is in progress.</p>
     </section>}
     {selectedInvoice && <div className="invoice-modal portal-invoice-modal" role="dialog" aria-modal="true" aria-label="Invoice PDF preview">
       <article className="invoice-print">

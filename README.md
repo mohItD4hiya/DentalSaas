@@ -1,13 +1,14 @@
 # SmileCraft Dental Clinic
 
-A dental clinic management demo tailored to Indian practices. It includes appointment scheduling, patient records, treatment tracking, INR billing, inventory, reports, and a clinic-data assistant.
+A dental clinic management demo tailored to Indian practices. It supports multiple branches of the same clinic, with shared patient records and medical history, branch-specific appointments, INR billing, inventory, reports, and a clinic-data assistant.
 
 ## Features
 
 - **Dashboard:** patient and appointment counts, pending treatments, monthly paid revenue, upcoming appointments, and low-stock alerts.
-- **Appointments:** create appointments and update their status (Booked, Confirmed, Completed, or Cancelled).
-- **Patient portal:** patients can request, reschedule, and cancel eligible appointments; opt in or out of a planned WhatsApp/SMS reminder 24 hours before appointments; view their visits, treatment history, clinical notes, and prescription PDFs; review invoice totals and print/save invoice PDFs; read general post-treatment guidance; and use the SmileCraft Assistant for navigation and general dental-care FAQs. Reminder delivery requires the clinic to configure MSG91 and approved messaging templates. The patient assistant responds locally and does not send patient records to Gemini. Emergency call and WhatsApp links can be configured with `VITE_CLINIC_PHONE`.
-- **Patients:** manage patient names, ages, 10-digit phone numbers, and known health issues; open each patient's visit notebook to review or record visit dates, prescriptions, and clinical notes.
+- **Appointments:** create appointments and update their status (Booked, Confirmed, Completed, or Cancelled). A date/time slot can have only one active booking; cancelled and completed appointments release the slot.
+- **Clinic branches:** support multiple locations for one clinic. Patient records, visit history, treatments, and invoices are shared across branches; branch doctors can manage appointments only at their assigned location, and each location reserves time slots independently.
+- **Patient portal:** patients can choose a clinic branch for appointment requests, reschedule across active branches, and see which branch their appointment is at; their existing patient record and history remain shared across all branches of this clinic. They can also opt in or out of a planned WhatsApp/SMS reminder 24 hours before appointments; view their visits, treatment history, clinical notes, and prescription PDFs; review invoice totals and print/save invoice PDFs; read general post-treatment guidance; and use the SmileCraft Assistant for navigation and general dental-care FAQs. Staff can add an email to an existing patient record and create a one-time, 24-hour activation link so the patient can set their own password and access that same record. The link must be shared securely by clinic staff; email delivery is not configured. Reminder delivery is in progress. The patient assistant responds locally and does not send patient records to Gemini. Emergency call and WhatsApp links can be configured with `VITE_CLINIC_PHONE`.
+- **Patients:** manage patient names, ages, 10-digit phone numbers, email addresses, and known health issues; open each patient's visit notebook to review or record visit dates, prescriptions, and clinical notes; create activation links for patients to access their existing record in the portal.
 - **Patient visit notebooks:** keep visit dates, treatment details, prescriptions, and clinical notes together in each patient record.
 - **Billing:** create itemized invoices in Indian rupees (INR), add multiple services with quantity and rate, optionally enter a GST rate per bill, record an insurer or Self Pay, update Unpaid/Paid status, and preview or print bills.
 - **Inventory:** maintain item quantities and reorder thresholds; edit quantities directly or use **Use 1** to record consumption.
@@ -122,7 +123,9 @@ Email:    aarav.patient@dentalsaas.com
 Password: patient123
 ```
 
-Patients can also choose **Patient registration** on the sign-in page to create a patient account. New patient accounts are linked to a patient record and can access only their own appointments and patient records. Invoice PDF actions open a print dialog where the patient can print or choose **Save as PDF**.
+The demo seed creates a **Main Branch**. Clinic locations and branch doctor accounts are provisioned by clinic-wide administration. A branch doctor can view and manage appointments only at their assigned branch, while patient records remain shared clinic-wide. Newly created doctor accounts receive a generated temporary password once. Existing appointment history is retained when a branch is renamed or deactivated, and active appointment slots are reserved independently per branch.
+
+Patients can also choose **Patient registration** on the sign-in page to create a patient account. For an existing clinic record, staff should add the patient's email and create an activation link from the Patients screen; the patient uses that link to choose a password, and the account is connected to the existing record. Activation links are single-use and expire after 24 hours; the app does not email links automatically. New patient accounts are linked to a patient record and can access only their own appointments and patient records. Invoice PDF actions open a print dialog where the patient can print or choose **Save as PDF**.
 
 ### 4. Start the API
 
@@ -166,8 +169,12 @@ All routes other than login require a JWT. The frontend adds the token as a Bear
 | --- | --- | --- |
 | `POST` | `/api/auth/login` | Sign in; returns a token and user name |
 | `POST` | `/api/auth/patient/register` | Register a patient account and patient record |
+| `POST` | `/api/auth/patient/activate` | Activate a patient invitation and set a password |
 | `GET`, `POST` | `/api/patients` | List or add patients |
 | `PUT`, `DELETE` | `/api/patients/:id` | Edit or remove a patient |
+| `POST` | `/api/patients/:id/invitation` | Doctor-only: create a single-use patient activation link |
+| `GET` | `/api/branches` | List clinic branches (patients see active branches) |
+| `POST`, `PUT` | `/api/branches` | Doctor-only: add or update a clinic branch |
 | `GET`, `POST` | `/api/patients/:id/visits` | List or record a patient's visit, prescription, and clinical notes |
 | `GET`, `POST` | `/api/appointments` | List or book appointments |
 | `PUT`, `DELETE` | `/api/appointments/:id` | Edit appointment details/status or remove an appointment |
@@ -183,7 +190,7 @@ All routes other than login require a JWT. The frontend adds the token as a Bear
 | `GET` | `/api/stats` | Dashboard and report summary data |
 | `POST` | `/api/ai` | Ask the clinic assistant (`{ "q": "..." }`) |
 
-Dates are stored as `YYYY-MM-DD` strings and appointment times as 24-hour `HH:mm` strings. Currency amounts are rupees. New invoices store the pre-tax subtotal, optional GST rate and amount, and the final total. The GST rate is blank/0% unless entered; confirm the applicable tax treatment with a qualified accountant before issuing real invoices. A printed bill uses the configured demo clinic name and does not yet include a clinic address, GSTIN, or other statutory invoice details. The demo seed includes a few example patient visits with sample notes and prescriptions. Existing treatment records still contribute to the dashboard's pending-treatment metric.
+Dates are stored as `YYYY-MM-DD` strings and appointment times as 24-hour `HH:mm` strings. Each appointment is assigned to a branch; one active appointment may use a given date/time at each branch. Patient profiles, visit history, treatment records, and invoices are shared across branches within this single clinic installation. This is not a multi-clinic tenant system. Currency amounts are rupees. New invoices store the pre-tax subtotal, optional GST rate and amount, and the final total. The GST rate is blank/0% unless entered; confirm the applicable tax treatment with a qualified accountant before issuing real invoices. A printed bill uses the configured demo clinic name and does not yet include a clinic address, GSTIN, or other statutory invoice details. The demo seed includes a few example patient visits with sample notes and prescriptions. Existing treatment records still contribute to the dashboard's pending-treatment metric.
 
 Clinic-wide records and doctor routes require a doctor account. Patient record and appointment routes are scoped to the signed-in patient's linked patient record. Older appointments, treatments, and invoices without a patient reference are included only when the exact patient name is unique. Patient booking and rescheduling requests are created as `Booked` (shown as Pending in the portal); a doctor/staff member must confirm them. Patients may reschedule or cancel only future appointments that are still Booked or Confirmed.
 
