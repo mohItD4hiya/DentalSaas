@@ -107,7 +107,7 @@ In the `server` directory:
 npm run seed
 ```
 
-This creates the demo user and sample patients, appointments, treatments, invoices, and inventory items. **Seeding deletes all existing documents in these collections before recreating the sample data. Do not run it against a database containing data you need to keep.**
+This creates the demo clinic admin, the Rohini and Pitampura branches, one branch doctor for each location, and sample patients, appointments, treatments, invoices, and inventory items. Each branch doctor's temporary password is randomly generated and printed once in the seed command's terminal output. **Seeding deletes all existing documents in these collections before recreating the sample data. Do not run it against a database containing data you need to keep.**
 
 Demo login:
 
@@ -123,7 +123,7 @@ Email:    aarav.patient@dentalsaas.com
 Password: patient123
 ```
 
-The demo seed creates a **Main Branch**. Clinic locations and branch doctor accounts are provisioned by clinic-wide administration. A branch doctor can view and manage appointments only at their assigned branch, while patient records remain shared clinic-wide. Newly created doctor accounts receive a generated temporary password once. Existing appointment history is retained when a branch is renamed or deactivated, and active appointment slots are reserved independently per branch.
+The demo seed creates **Rohini** and **Pitampura**, assigns Dr Sameer (`sameer@gmail.com`) to Rohini and Dr Aarav (`aarav@gmail.com`) to Pitampura, and distributes sample appointments across the branches. Their passwords are generated at seed time and printed in the terminal; they are not fixed or stored in this repository. A branch doctor can view and manage appointments only at their assigned branch, while patient records remain shared clinic-wide. Active appointment slots are reserved independently per branch.
 
 Patients can also choose **Patient registration** on the sign-in page to create a patient account. For an existing clinic record, staff should add the patient's email and create an activation link from the Patients screen; the patient uses that link to choose a password, and the account is connected to the existing record. Activation links are single-use and expire after 24 hours; the app does not email links automatically. New patient accounts are linked to a patient record and can access only their own appointments and patient records. Invoice PDF actions open a print dialog where the patient can print or choose **Save as PDF**.
 
@@ -203,7 +203,7 @@ The `mongodb-memory-server` development dependency can provide an in-memory Mong
 ## Troubleshooting
 
 - **MongoDB connection error:** confirm the MongoDB service is running and `MONGO_URI` is correct; ensure an Atlas network access rule permits your connection.
-- **Login fails:** run `npm run seed` from `server` to recreate the demo account. This replaces all sample collections, so only do this on a disposable demo database.
+- **Login fails:** check that the account exists in the configured MongoDB database. `npm run seed` recreates the demo admin, branch doctors, and sample data, but replaces all sample collections; only run it on a disposable demo database. Branch doctor passwords are generated and printed each time the seed runs.
 - **Frontend cannot reach the API:** start the backend on port `5000`; check that the Vite proxy in `client/vite.config.js` points to the same host and port.
 - **Port already in use:** choose another backend `PORT` in `server/.env` and update the Vite proxy in `client/vite.config.js`, or stop the process already using that port.
 - **AI uses simple built-in replies:** configure a valid `GEMINI_API_KEY` in `server/.env` and restart the backend. If Gemini reports an error, check the key, configured model, project access, and current quota.
