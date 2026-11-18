@@ -294,7 +294,60 @@ const crud = (path, Model, sort = { createdAt: -1 }) => {
   });
 };
 crud('patients', Patient); crud('appointments', Appointment, { date: 1, time: 1 });
-crud('treatments', Treatment); crud('invoices', Invoice); crud('inventory', Item, { name: 1 });
+crud('treatments', Treatment); crud('invoices', Invoice);
+
+const inventoryBranch = async (req, res, branchId) => {
+  const selectedBranchId = req.user.branchId || branchId;
+  if (!selectedBranchId || !mongoose.isValidObjectId(selectedBranchId)) {
+    res.status(400).json({ error: 'Choose a clinic branch to manage its inventory.' });
+    return null;
+  }
+  const branch = await Branch.findById(selectedBranchId);
+  if (!branch || (!req.user.branchId && !branch.isActive)) {
+    res.status(404).json({ error: 'Active clinic branch not found.' });
+    return null;
+  }
+  return branch;
+};
+app.get('/api/inventory', auth, requireDoctor, async (req, res) => {
+  const branch = await inventoryBranch(req, res, req.query.branchId);
+  if (!branch) return;
+  res.json(await Item.find({ branchId: branch._id }).sort({ name: 1 }));
+});
+app.post('/api/inventory', auth, requireDoctor, async (req, res) => {
+  const branch = await inventoryBranch(req, res, req.body.branchId);
+  if (!branch) return;
+  const name = typeof req.body.name === 'string' ? req.body.name.trim() : '';
+  const qty = Number(req.body.qty);
+  const minQty = req.body.minQty === undefined || req.body.minQty === '' ? 10 : Number(req.body.minQty);
+  if (!name) return res.status(400).json({ error: 'Inventory item name is required.' });
+  if (!Number.isFinite(qty) || qty < 0) return res.status(400).json({ error: 'Quantity must be a non-negative number.' });
+  if (!Number.isFinite(minQty) || minQty < 0) return res.status(400).json({ error: 'Reorder quantity must be a non-negative number.' });
+  res.status(201).json(await Item.create({ name, qty, minQty, branchId: branch._id }));
+});
+app.put('/api/inventory/:id', auth, requireDoctor, async (req, res) => {
+  const branch = await inventoryBranch(req, res, req.query.branchId);
+  if (!branch) return;
+  const item = await Item.findOne({ _id: req.params.id, branchId: branch._id });
+  if (!item) return res.status(404).json({ error: 'Inventory item not found in this branch.' });
+  const name = req.body.name === undefined ? item.name : typeof req.body.name === 'string' ? req.body.name.trim() : '';
+  const qty = req.body.qty === undefined ? item.qty : Number(req.body.qty);
+  const minQty = req.body.minQty === undefined ? item.minQty : Number(req.body.minQty);
+  if (!name) return res.status(400).json({ error: 'Inventory item name is required.' });
+  if (!Number.isFinite(qty) || qty < 0) return res.status(400).json({ error: 'Quantity must be a non-negative number.' });
+  if (!Number.isFinite(minQty) || minQty < 0) return res.status(400).json({ error: 'Reorder quantity must be a non-negative number.' });
+  item.name = name;
+  item.qty = qty;
+  item.minQty = minQty;
+  res.json(await item.save());
+});
+app.delete('/api/inventory/:id', auth, requireDoctor, async (req, res) => {
+  const branch = await inventoryBranch(req, res, req.query.branchId);
+  if (!branch) return;
+  const result = await Item.deleteOne({ _id: req.params.id, branchId: branch._id });
+  if (!result.deletedCount) return res.status(404).json({ error: 'Inventory item not found in this branch.' });
+  res.json({ ok: true });
+});
 
 app.post('/api/patients/:id/invitation', auth, requireDoctor, async (req, res) => {
   const patient = await Patient.findById(req.params.id);
@@ -466,7 +519,8 @@ app.get('/api/patient/records', auth, async (req, res) => {
 async function stats(branchId) {
   const today = new Date().toISOString().slice(0, 10), month = today.slice(0, 7);
   const [patients, appts, treatments, invoices, items, branches] = await Promise.all([
-    Patient.countDocuments(), Appointment.find(branchId ? { branchId } : {}).sort({ date: 1, time: 1 }), Treatment.find(), Invoice.find(), Item.find(), Branch.find().select('name').lean()]);
+    Patient.countDocuments(), Appointment.find(branchId ? { branchId } : {}).sort({ date: 1, time: 1 }), Treatment.find(), Invoice.find(),
+    Item.find(branchId ? { branchId } : {}), Branch.find().select('name').lean()]);
   const branchNames = new Map(branches.map(branch => [String(branch._id), branch.name]));
   const paid = invoices.filter(i => i.status === 'Paid');
   const byMonth = {}; paid.forEach(i => { const m = (i.date || '').slice(0, 7); byMonth[m] = (byMonth[m] || 0) + i.amount; });
@@ -479,7 +533,10 @@ async function stats(branchId) {
     upcoming: appts.filter(a => a.date >= today && a.status !== 'Cancelled').slice(0, 5)
       .map(appointment => ({ ...appointment.toObject(), branchName: branchNames.get(String(appointment.branchId)) || 'Unknown branch' })),
     revenueByMonth: Object.entries(byMonth).sort().slice(-6), treatmentMix: byProc,
-    lowStock: items.filter(i => i.qty <= i.minQty).map(i => `${i.name} (${i.qty} left)`),
+    lowStock: items.filter(i => i.qty <= i.minQty).map(i => {
+      const location = branchId ? '' : ` · ${branchNames.get(String(i.branchId)) || 'Unknown branch'}`;
+      return `${i.name} (${i.qty} left${location})`;
+    }),
   };
 }
 app.get('/api/stats', auth, requireDoctor, async (req, res) => res.json(await stats(req.user.branchId)));
@@ -598,6 +655,23 @@ mongoose.connect(process.env.MONGO_URI || 'mongodb://127.0.0.1:27017/dentalsaas'
   )));
   let defaultBranch = await Branch.findOne({ isActive: true }).sort({ createdAt: 1 });
   if (!defaultBranch) defaultBranch = await Branch.create({ name: 'Main Branch' });
+  const legacyInventory = await Item.find({
+    $or: [{ branchId: { $exists: false } }, { branchId: null }],
+  }).lean();
+  if (legacyInventory.length) {
+    const inventoryBranches = await Branch.find({ isActive: true }).select('_id').lean();
+    for (const item of legacyInventory) {
+      for (const branch of inventoryBranches) {
+        await Item.updateOne(
+          { branchId: branch._id, name: item.name },
+          { $setOnInsert: { name: item.name, qty: item.qty, minQty: item.minQty ?? 10, branchId: branch._id } },
+          { upsert: true },
+        );
+      }
+      await Item.deleteOne({ _id: item._id, $or: [{ branchId: { $exists: false } }, { branchId: null }] });
+    }
+    console.log(`Copied ${legacyInventory.length} legacy inventory item(s) to each active branch.`);
+  }
   await Appointment.updateMany(
     { $or: [{ branchId: { $exists: false } }, { branchId: null }] },
     { $set: { branchId: defaultBranch._id } },

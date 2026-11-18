@@ -1,125 +1,216 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1414" height="1000" viewBox="0 0 1414 1000" role="img" aria-labelledby="title description">
   <title id="title">SmileCraft Dental Clinic project poster</title>
-  <desc id="description">Landscape poster for SmileCraft, a single Indian dental clinic with Rohini and Pitampura branches, shared patient records, branch-specific appointments, and assigned doctors.</desc>
+  <desc id="description">Landscape academic poster presenting SmileCraft, an Indian dental clinic system for the Rohini and Pitampura branches, with shared patient records and branch-specific appointments.</desc>
   <defs>
     <linearGradient id="header" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0" stop-color="#452457"/>
-      <stop offset="1" stop-color="#754192"/>
+      <stop offset="0" stop-color="#1459a6"/>
+      <stop offset="1" stop-color="#103f7d"/>
     </linearGradient>
-    <linearGradient id="accent" x1="0" y1="0" x2="1" y2="0">
-      <stop offset="0" stop-color="#58c8b3"/>
-      <stop offset="1" stop-color="#b3eee0"/>
-    </linearGradient>
-    <filter id="shadow" x="-10%" y="-12%" width="120%" height="130%">
-      <feDropShadow dx="0" dy="6" stdDeviation="9" flood-color="#44265a" flood-opacity=".08"/>
+    <pattern id="dots" width="24" height="24" patternUnits="userSpaceOnUse">
+      <circle cx="2" cy="2" r="1.2" fill="#d5e0ed"/>
+    </pattern>
+    <filter id="shadow" x="-10%" y="-10%" width="120%" height="125%">
+      <feDropShadow dx="0" dy="4" stdDeviation="7" flood-color="#18395e" flood-opacity=".07"/>
     </filter>
     <style>
       text{font-family:Inter,"Segoe UI",Arial,sans-serif}
-      .eyebrow{font-size:13px;font-weight:800;letter-spacing:1.8px}
-      .section{font-size:17px;font-weight:800;letter-spacing:.55px;fill:#452457}
-      .body{font-size:14px;fill:#51465c}
-      .small{font-size:11.5px;fill:#74677b}
-      .feature-title{font-size:13px;font-weight:750;fill:#382847}
-      .feature-body{font-size:11.5px;fill:#74677b}
-      .pill{font-size:10px;font-weight:800;letter-spacing:.5px}
+      .eyebrow{font-size:13px;font-weight:800;letter-spacing:1.55px}
+      .section{font-size:19px;font-weight:800;letter-spacing:.55px;fill:#194777}
+      .body{font-size:15px;fill:#453b51}
+      .small{font-size:12px;fill:#675d72}
+      .feature-title{font-size:15px;font-weight:750;fill:#352a43}
+      .feature-body{font-size:13px;fill:#61576d}
+      .chip{font-size:14px;font-weight:700;fill:#245487}
+      .step{font-size:15px;font-weight:750;fill:#194777}
     </style>
   </defs>
 
-  <rect width="1414" height="1000" fill="#f7f4f9"/>
-  <rect width="1414" height="142" fill="#fff"/>
-  <image href="poster-assets/hmr-institute-banner.png" x="48" y="23" width="500" height="116" preserveAspectRatio="xMinYMid meet"/>
-  <text x="1360" y="62" text-anchor="end" class="eyebrow" fill="#8b55a1">ACADEMIC PROJECT</text>
-  <text x="1360" y="88" text-anchor="end" class="small">HMR Institute of Technology &amp; Management</text>
-  <text x="1360" y="108" text-anchor="end" class="small">Hamidpur, Delhi-110036</text>
-  <path d="M0 142h1414v8H0z" fill="url(#accent)"/>
+  <rect width="1414" height="1000" fill="#fbfcfe"/>
+  <rect y="152" width="1414" height="848" fill="url(#dots)" opacity=".55"/>
 
-  <rect y="150" width="1414" height="218" fill="url(#header)"/>
-  <circle cx="1280" cy="175" r="155" fill="#fff" opacity=".045"/>
-  <circle cx="1390" cy="335" r="98" fill="#c6f4e8" opacity=".09"/>
-  <g transform="translate(93 202)">
-    <circle cx="42" cy="42" r="39" fill="#fff" opacity=".14"/>
-    <path d="M42 13c-11-10-29-4-31 13-2 17 7 44 17 45 7 0 6-21 14-21s7 21 14 21c10-1 19-28 17-45-2-17-20-23-31-13z" fill="none" stroke="#d7fff4" stroke-width="4" stroke-linejoin="round"/>
-    <path d="M22 42h40M42 22v40" stroke="#74dcc8" stroke-width="3" stroke-linecap="round"/>
-  </g>
-  <text x="190" y="218" fill="#c9f4e9" class="eyebrow">DENTAL CLINIC MANAGEMENT • INDIA</text>
-  <text x="186" y="278" fill="#fff" font-size="54" font-weight="850" letter-spacing="-1.7">SmileCraft Dental Clinic</text>
-  <text x="190" y="316" fill="#f0e5f6" font-size="21">One clinic across Rohini &amp; Pitampura, with shared patient records.</text>
-  <g transform="translate(1135 190)">
-    <rect width="186" height="145" rx="22" fill="#fff" opacity=".1" stroke="#fff" stroke-opacity=".2"/>
-    <rect x="22" y="19" width="142" height="86" rx="9" fill="#fff"/>
-    <rect x="32" y="30" width="51" height="18" rx="5" fill="#efe6f3"/>
-    <rect x="32" y="56" width="58" height="38" rx="6" fill="#e8f8f3"/>
-    <rect x="98" y="30" width="55" height="64" rx="6" fill="#f7f2fa"/>
-    <path d="M40 82h39M40 74h28M108 43h34M108 54h29M108 65h34M108 76h22" stroke="#9d7eae" stroke-width="3.5" stroke-linecap="round"/>
-    <circle cx="140" cy="105" r="19" fill="#55cbb3" stroke="#684080" stroke-width="4"/>
-    <path d="M133 105l5 5 10-11" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
-    <text x="92" y="130" fill="#fff" font-size="10" font-weight="750" text-anchor="middle" letter-spacing="1">CARE, CONNECTED</text>
-  </g>
+  <rect width="1414" height="152" fill="url(#header)"/>
+  <rect x="38" y="18" width="464" height="116" rx="16" fill="#fff"/>
+  <image href="poster-assets/hmr-institute-banner.png" x="46" y="20" width="448" height="112" preserveAspectRatio="xMinYMid meet"/>
+  <circle cx="566" cy="76" r="47" fill="#fff" stroke="#0f9b9e" stroke-width="5"/>
+  <path d="M566 47c-12-10-28-3-30 12-2 17 6 39 15 40 6 0 6-18 15-18s9 18 15 18c9-1 17-23 15-40-2-15-18-22-30-12z" fill="#174b8d"/>
+  <path d="M550 68c5 7 11 10 16 10s11-3 16-10" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round"/>
+  <text x="630" y="69" fill="#fff" font-size="39" font-weight="850" letter-spacing="-1">SmileCraft Dental Clinic</text>
+  <text x="632" y="103" fill="#eee7f5" font-size="19">A dental clinic management web application for Indian clinics</text>
+  <path d="M0 148h1414v7H0z" fill="#0f9b9e"/>
+
+  <rect x="0" y="155" width="1414" height="845" fill="url(#dots)" opacity=".35"/>
 
   <g filter="url(#shadow)">
-    <rect x="56" y="393" width="1302" height="104" rx="18" fill="#fff"/>
+    <rect x="38" y="177" width="374" height="230" rx="18" fill="#fff" stroke="#dce6f1" stroke-width="2"/>
+    <rect x="38" y="425" width="374" height="248" rx="18" fill="#fff" stroke="#dce6f1" stroke-width="2"/>
+    <rect x="432" y="177" width="944" height="526" rx="18" fill="#fff" stroke="#dce6f1" stroke-width="2"/>
+    <rect x="432" y="721" width="944" height="204" rx="18" fill="#fff" stroke="#dce6f1" stroke-width="2"/>
   </g>
-  <text x="84" y="426" class="eyebrow" fill="#8b55a1">THE CHALLENGE</text>
-  <text x="84" y="459" class="section" font-size="20">Clinic work is easier when essential tools work together.</text>
-  <text x="720" y="439" class="body">Appointments, patient information, follow-ups, billing and supplies can be hard to track</text>
-  <text x="720" y="463" class="body">across locations. SmileCraft shares patient history and assigns appointments by branch.</text>
 
-  <text x="60" y="548" class="eyebrow" fill="#8b55a1">BUILT FOR THE DAILY FLOW OF A CLINIC</text>
-  <text x="60" y="577" class="section" font-size="21">Two connected experiences. One shared clinic record.</text>
+  <rect x="60" y="199" width="8" height="22" rx="4" fill="#0f9b9e"/>
+  <text x="81" y="216" class="section">THE CHALLENGE</text>
+  <text x="61" y="251" class="body">
+    <tspan x="61" dy="0">Dental clinics need a simple way to manage</tspan>
+    <tspan x="61" dy="23">appointments, patient information, treatments,</tspan>
+    <tspan x="61" dy="23">billing and supplies together.</tspan>
+  </text>
+  <text x="61" y="335" class="body">
+    <tspan x="61" dy="0">When one clinic has multiple branches, patient</tspan>
+    <tspan x="61" dy="23">history should stay connected while appointments</tspan>
+    <tspan x="61" dy="23">and doctor access remain branch-specific.</tspan>
+  </text>
 
+  <rect x="60" y="447" width="8" height="22" rx="4" fill="#0f9b9e"/>
+  <text x="81" y="464" class="section">TECHNOLOGY</text>
+  <g>
+    <rect x="61" y="484" width="158" height="49" rx="11" fill="#f1f6fc"/>
+    <rect x="231" y="484" width="158" height="49" rx="11" fill="#f1f6fc"/>
+    <rect x="61" y="544" width="158" height="49" rx="11" fill="#f1f6fc"/>
+    <rect x="231" y="544" width="158" height="49" rx="11" fill="#f1f6fc"/>
+    <rect x="61" y="604" width="158" height="49" rx="11" fill="#f1f6fc"/>
+    <rect x="231" y="604" width="158" height="49" rx="11" fill="#f1f6fc"/>
+  </g>
+  <g fill="#0f9b9e">
+    <circle cx="84" cy="508" r="10"/><circle cx="254" cy="508" r="10"/>
+    <circle cx="84" cy="568" r="10"/><circle cx="254" cy="568" r="10"/>
+    <circle cx="84" cy="628" r="10"/><circle cx="254" cy="628" r="10"/>
+  </g>
+  <g fill="#fff" font-size="10" font-weight="800" text-anchor="middle">
+    <text x="84" y="778">R</text><text x="254" y="778">V</text>
+    <text x="84" y="838">N</text><text x="254" y="838">E</text>
+    <text x="84" y="893">M</text><text x="254" y="893">A</text>
+  </g>
+  <text x="102" y="513" class="chip">React</text><text x="272" y="513" class="chip">Vite</text>
+  <text x="102" y="573" class="chip">Node.js</text><text x="272" y="573" class="chip">Express</text>
+  <text x="102" y="633" class="chip">MongoDB</text><text x="272" y="633" class="chip">Mongoose</text>
+
+  <rect x="38" y="691" width="374" height="234" rx="18" fill="#fff" stroke="#e6dcef" stroke-width="2"/>
+  <rect x="60" y="713" width="8" height="22" rx="4" fill="#0f9b9e"/>
+  <text x="81" y="730" class="section">CLINIC DASHBOARD</text>
   <g filter="url(#shadow)">
-    <rect x="56" y="600" width="420" height="253" rx="18" fill="#fff"/>
-    <rect x="497" y="600" width="420" height="253" rx="18" fill="#fff"/>
-    <rect x="938" y="600" width="420" height="253" rx="18" fill="#fff"/>
+    <rect x="68" y="747" width="314" height="139" rx="12" fill="#102b4f"/>
+    <rect x="77" y="756" width="296" height="121" rx="6" fill="#fff"/>
   </g>
-  <rect x="56" y="600" width="420" height="7" rx="3.5" fill="#8851a0"/>
-  <rect x="497" y="600" width="420" height="7" rx="3.5" fill="#50bda9"/>
-  <rect x="938" y="600" width="420" height="7" rx="3.5" fill="#d2a15a"/>
-
-  <circle cx="89" cy="635" r="17" fill="#f1e8f5"/>
-  <path d="M80 641v-10l9-6 9 6v10h-6v-7h-5v7z" fill="none" stroke="#754192" stroke-width="2" stroke-linejoin="round"/>
-  <text x="116" y="632" class="section" font-size="15">CLINIC TEAM</text>
-  <text x="116" y="651" class="small">Rohini: Dr Sameer  •  Pitampura: Dr Aarav</text>
+  <rect x="77" y="756" width="57" height="121" rx="6" fill="#174b8d"/>
+  <text x="85" y="772" fill="#fff" font-size="7.5" font-weight="800">SmileCraft</text>
+  <rect x="84" y="782" width="44" height="13" rx="4" fill="#2869ad"/>
+  <text x="90" y="791" fill="#fff" font-size="6.5">Dashboard</text>
+  <text x="90" y="808" fill="#e1d6e8" font-size="6.5">Appointments</text>
+  <text x="90" y="823" fill="#e1d6e8" font-size="6.5">Patients</text>
+  <text x="90" y="838" fill="#e1d6e8" font-size="6.5">Billing</text>
+  <text x="90" y="853" fill="#e1d6e8" font-size="6.5">Reports</text>
+  <text x="143" y="773" fill="#33253c" font-size="10" font-weight="800">Dashboard</text>
   <g>
-    <circle cx="82" cy="680" r="3.5" fill="#8851a0"/><text x="96" y="684" class="feature-title">Appointments</text><text x="96" y="700" class="feature-body">Branch-based bookings; prevent duplicate active slots</text>
-    <circle cx="82" cy="722" r="3.5" fill="#8851a0"/><text x="96" y="726" class="feature-title">Patient records</text><text x="96" y="742" class="feature-body">Shared history across Rohini &amp; Pitampura</text>
-    <circle cx="82" cy="764" r="3.5" fill="#8851a0"/><text x="96" y="768" class="feature-title">Treatments &amp; follow-ups</text><text x="96" y="784" class="feature-body">Track procedures, care and follow-up dates</text>
-    <circle cx="82" cy="806" r="3.5" fill="#8851a0"/><text x="96" y="810" class="feature-title">Billing, reports &amp; inventory</text><text x="96" y="826" class="feature-body">INR invoices, optional GST, low-stock alerts</text>
+    <rect x="143" y="782" width="67" height="30" rx="5" fill="#eaf2fb"/>
+    <rect x="216" y="782" width="67" height="30" rx="5" fill="#e4f6f2"/>
+    <rect x="289" y="782" width="73" height="30" rx="5" fill="#eef3fc"/>
   </g>
+  <text x="149" y="793" fill="#376a9e" font-size="5.8">Appointments</text>
+  <text x="149" y="806" fill="#194777" font-size="11" font-weight="800">Today</text>
+  <text x="222" y="793" fill="#36877c" font-size="5.8">Patient records</text>
+  <text x="222" y="806" fill="#236d64" font-size="11" font-weight="800">Shared</text>
+  <text x="295" y="793" fill="#376a9e" font-size="5.8">Clinic branches</text>
+  <text x="295" y="806" fill="#194777" font-size="10" font-weight="800">2 active</text>
+  <rect x="143" y="819" width="219" height="50" rx="5" fill="#f9fbfe" stroke="#e2eaf3"/>
+  <text x="150" y="831" fill="#514359" font-size="6.5" font-weight="800">Upcoming appointments</text>
+  <path d="M150 837h205M150 846h205M150 855h205M150 864h205" stroke="#e9e1ed" stroke-width=".8"/>
+  <circle cx="153" cy="842" r="2" fill="#0f9b9e"/><circle cx="153" cy="851" r="2" fill="#0f9b9e"/>
+  <circle cx="153" cy="860" r="2" fill="#0f9b9e"/>
+  <path d="M177 842h72M177 851h91M177 860h77M304 842h40M304 851h40M304 860h40" stroke="#a99bb1" stroke-width="2" stroke-linecap="round"/>
+  <path d="M208 886h34l9 15h-52z" fill="#ddd4e5"/>
+  <path d="M186 901h79" stroke="#b8a9c2" stroke-width="4" stroke-linecap="round"/>
 
-  <circle cx="530" cy="635" r="17" fill="#e3f7f1"/>
-  <circle cx="525" cy="632" r="4" fill="none" stroke="#258d7b" stroke-width="1.8"/>
-  <path d="M518 644c0-5 3-8 7-8s7 3 7 8M540 628a4 4 0 0 1 0 8M542 638c4 1 6 3 6 6" fill="none" stroke="#258d7b" stroke-width="1.8" stroke-linecap="round"/>
-  <text x="557" y="632" class="section" font-size="15">PATIENT PORTAL</text>
-  <text x="557" y="651" class="small">Secure access linked to the clinic record</text>
-  <g>
-    <circle cx="523" cy="680" r="3.5" fill="#43ad9b"/><text x="537" y="684" class="feature-title">Appointments</text><text x="537" y="700" class="feature-body">Request, review or manage eligible visits</text>
-    <circle cx="523" cy="722" r="3.5" fill="#43ad9b"/><text x="537" y="726" class="feature-title">Health records</text><text x="537" y="742" class="feature-body">View notes, treatments and prescriptions</text>
-    <circle cx="523" cy="764" r="3.5" fill="#43ad9b"/><text x="537" y="768" class="feature-title">Billing</text><text x="537" y="784" class="feature-body">Review invoices and save or print PDFs</text>
-    <circle cx="523" cy="806" r="3.5" fill="#43ad9b"/><text x="537" y="810" class="feature-title">Appointment reminders</text>
-    <rect x="537" y="815" width="101" height="22" rx="11" fill="#fff3d8"/>
-    <text x="587" y="830" class="pill" fill="#9b6711" text-anchor="middle">IN PROGRESS</text>
-  </g>
-
-  <circle cx="971" cy="635" r="17" fill="#fff3df"/>
-  <path d="M971 625l3 7 7 .5-5.5 4.5 1.8 7-6.3-3.8-6.3 3.8 1.8-7-5.5-4.5 7-.5z" fill="none" stroke="#aa7933" stroke-width="1.7" stroke-linejoin="round"/>
-  <text x="998" y="632" class="section" font-size="15">SMART SUPPORT</text>
-  <text x="998" y="651" class="small">Helpful tools for clinic teams</text>
-  <g>
-    <circle cx="964" cy="680" r="3.5" fill="#d2a15a"/><text x="978" y="684" class="feature-title">AI clinic assistant</text><text x="978" y="700" class="feature-body">Find follow-ups; answer general oral-health questions</text>
-    <circle cx="964" cy="722" r="3.5" fill="#d2a15a"/><text x="978" y="726" class="feature-title">Voice input</text><text x="978" y="742" class="feature-body">Ask questions by voice where browser-supported</text>
-    <circle cx="964" cy="764" r="3.5" fill="#d2a15a"/><text x="978" y="768" class="feature-title">Web-based application</text><text x="978" y="784" class="feature-body">React · Vite · Node.js · Express · MongoDB</text>
-    <circle cx="964" cy="806" r="3.5" fill="#d2a15a"/><text x="978" y="810" class="feature-title">Connected workflow</text><text x="978" y="826" class="feature-body">Shared records • branch doctors • branch-specific appointments</text>
-  </g>
+  <rect x="455" y="198" width="8" height="23" rx="4" fill="#0f9b9e"/>
+  <text x="477" y="216" class="section">KEY FEATURES</text>
+  <text x="1350" y="215" class="small" text-anchor="end">One connected clinic workflow</text>
 
   <g>
-    <rect x="56" y="880" width="1302" height="72" rx="15" fill="#eee7f2"/>
-    <text x="78" y="907" class="eyebrow" fill="#754192">IMPORTANT</text>
-    <text x="220" y="906" class="small">The AI assistant provides general information, not diagnosis. Appointment reminders are in progress.</text>
-    <text x="220" y="928" class="small">Payment processing and insurance claims are not integrated. Review privacy and regulatory needs before real clinical use.</text>
+    <rect x="455" y="238" width="432" height="78" rx="15" fill="#f1f6fc"/>
+    <rect x="907" y="238" width="442" height="78" rx="15" fill="#f1f6fc"/>
+    <rect x="455" y="328" width="432" height="78" rx="15" fill="#f1f6fc"/>
+    <rect x="907" y="328" width="442" height="78" rx="15" fill="#f1f6fc"/>
+    <rect x="455" y="418" width="432" height="78" rx="15" fill="#f1f6fc"/>
+    <rect x="907" y="418" width="442" height="78" rx="15" fill="#f1f6fc"/>
+    <rect x="455" y="508" width="432" height="78" rx="15" fill="#f1f6fc"/>
+    <rect x="907" y="508" width="442" height="78" rx="15" fill="#f1f6fc"/>
+    <rect x="455" y="598" width="432" height="78" rx="15" fill="#f1f6fc"/>
+    <rect x="907" y="598" width="442" height="78" rx="15" fill="#f1f6fc"/>
   </g>
-  <text x="60" y="981" class="small" font-weight="700">TEAM: __________________________</text>
-  <text x="515" y="981" class="small" font-weight="700">PROJECT GUIDE / COURSE: __________________________</text>
-  <rect x="1284" y="960" width="65" height="30" rx="4" fill="none" stroke="#baaac3" stroke-dasharray="4 3"/>
-  <text x="1316" y="980" class="small" text-anchor="middle">QR</text>
+
+  <g fill="#0f929b">
+    <circle cx="501" cy="277" r="27"/><circle cx="953" cy="277" r="27"/>
+    <circle cx="501" cy="367" r="27"/><circle cx="953" cy="367" r="27"/>
+    <circle cx="501" cy="457" r="27"/><circle cx="953" cy="457" r="27"/>
+    <circle cx="501" cy="547" r="27"/><circle cx="953" cy="547" r="27"/>
+    <circle cx="501" cy="637" r="27"/><circle cx="953" cy="637" r="27"/>
+  </g>
+  <g fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M494 264h14v22h-14zM498 270h7M498 275h7M498 280h5"/>
+    <rect x="944" y="265" width="18" height="20" rx="2"/><path d="M948 261v8M958 261v8M944 272h18"/>
+    <path d="M494 354l7-4 7 4v9c0 6-4 10-7 12-4-2-7-6-7-12zM498 363l3 3 5-6"/>
+    <circle cx="953" cy="361" r="7"/><path d="M940 380c1-7 5-10 13-10s12 3 13 10"/>
+    <rect x="493" y="447" width="16" height="19" rx="2"/><path d="M497 443h8M497 456l3 3 6-7"/>
+    <path d="M492 540l9-5 9 5-9 5zM492 540v12l9 5 9-5v-12M501 545v12"/>
+    <path d="M944 560h18M947 556v-7M953 556v-13M959 556v-9"/>
+    <path d="M490 629h22v15h-13l-6 5v-5h-3zM496 635h10M496 640h7"/>
+    <path d="M953 627v20M944 637h18M949 632l4 5-4 5M957 632l-4 5 4 5"/>
+  </g>
+  <g fill="#fff" font-family="Inter,'Segoe UI',Arial,sans-serif" font-size="22" font-weight="700" text-anchor="middle">
+    <text x="953" y="465">₹</text>
+  </g>
+  <text x="543" y="271" class="feature-title">Shared patient records</text>
+  <text x="543" y="293" class="feature-body">History accessible at Rohini and Pitampura</text>
+  <text x="995" y="271" class="feature-title">Branch appointment management</text>
+  <text x="995" y="293" class="feature-body">Each booking is assigned to a clinic location</text>
+
+  <text x="543" y="361" class="feature-title">No double-booking</text>
+  <text x="543" y="383" class="feature-body">Active slots are protected within each branch</text>
+  <text x="995" y="361" class="feature-title">Patient portal</text>
+  <text x="995" y="383" class="feature-body">Appointments, visit notes, prescriptions, invoices</text>
+
+  <text x="543" y="451" class="feature-title">Visit notes and care tracking</text>
+  <text x="543" y="473" class="feature-body">Treatments and follow-up dates in one record</text>
+  <text x="995" y="451" class="feature-title">Billing in Indian rupees</text>
+  <text x="995" y="473" class="feature-body">Itemized invoices with optional GST</text>
+
+  <text x="543" y="541" class="feature-title">Inventory management</text>
+  <text x="543" y="563" class="feature-body">Track supply usage and low-stock alerts</text>
+  <text x="995" y="541" class="feature-title">Reports and analytics</text>
+  <text x="995" y="563" class="feature-body">Clinic activity, treatment mix and revenue</text>
+
+  <text x="543" y="631" class="feature-title">Clinic AI assistant</text>
+  <text x="543" y="653" class="feature-body">Follow-up queries and general oral-health information</text>
+  <text x="995" y="631" class="feature-title">Doctor accounts by branch</text>
+  <text x="995" y="653" class="feature-body">Doctors manage appointments at their assigned location</text>
+
+  <rect x="455" y="744" width="8" height="23" rx="4" fill="#0f9b9e"/>
+  <text x="477" y="762" class="section">HOW IT WORKS</text>
+  <g>
+    <rect x="464" y="786" width="190" height="108" rx="15" fill="#f1f6fc"/>
+    <rect x="685" y="786" width="190" height="108" rx="15" fill="#f1f6fc"/>
+    <rect x="906" y="786" width="190" height="108" rx="15" fill="#f1f6fc"/>
+    <rect x="1127" y="786" width="222" height="108" rx="15" fill="#f1f6fc"/>
+  </g>
+  <g fill="#0f929b">
+    <circle cx="559" cy="814" r="20"/><circle cx="780" cy="814" r="20"/>
+    <circle cx="1001" cy="814" r="20"/><circle cx="1238" cy="814" r="20"/>
+  </g>
+  <g fill="#fff" font-size="17" font-weight="800" text-anchor="middle">
+    <text x="559" y="820">1</text><text x="780" y="820">2</text>
+    <text x="1001" y="820">3</text><text x="1238" y="820">4</text>
+  </g>
+  <text x="559" y="854" class="step" text-anchor="middle">Staff manages</text>
+  <text x="559" y="875" class="step" text-anchor="middle">shared records</text>
+  <text x="780" y="854" class="step" text-anchor="middle">Patient selects</text>
+  <text x="780" y="875" class="step" text-anchor="middle">a branch and books</text>
+  <text x="1001" y="854" class="step" text-anchor="middle">Branch doctor</text>
+  <text x="1001" y="875" class="step" text-anchor="middle">confirms the visit</text>
+  <text x="1238" y="854" class="step" text-anchor="middle">Clinic tracks care</text>
+  <text x="1238" y="875" class="step" text-anchor="middle">and follow-ups</text>
+  <g fill="none" stroke="#0f9b9e" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M660 840h16m-6-7 7 7-7 7"/>
+    <path d="M881 840h16m-6-7 7 7-7 7"/>
+    <path d="M1102 840h16m-6-7 7 7-7 7"/>
+  </g>
+  <text x="906" y="968" class="small" text-anchor="middle">HMR Institute of Technology &amp; Management  •  Hamidpur, Delhi-110036</text>
 </svg>

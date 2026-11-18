@@ -69,6 +69,7 @@ button.ghost{background:#f2d7ff;color:#71358d;box-shadow:none}button.ghost:hover
 button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible{outline:3px solid rgba(124,65,153,.25);outline-offset:2px}
 .qty-cell{display:flex;align-items:center;gap:.5rem}.qty-cell input{width:72px;flex:0 0 auto}.qty-cell span{font-weight:700}
 .status-wrap{display:flex;align-items:center;gap:.5rem;flex-wrap:wrap}.status-select{min-width:120px;flex:0 0 auto}
+.inventory-branch-select{display:block;max-width:320px;margin-bottom:1rem;font-weight:650;color:var(--navy)}.inventory-branch-select select{display:block;width:100%;margin-top:.35rem}
 .invoice-form{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:.85rem;align-items:end}
 .invoice-form label{display:flex;flex-direction:column;gap:.35rem;font-size:.9rem;font-weight:600;color:var(--navy)}
 .invoice-form input,.invoice-form select{width:100%;flex:auto}
@@ -219,12 +220,29 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
 @media(max-width:600px){.invoice-line{grid-template-columns:minmax(0,1fr) 76px}.invoice-line label:first-child{grid-column:1/-1}.remove-invoice-line{justify-self:start}}
 .app>nav{position:sticky;top:0;align-self:start;height:100vh;overflow-y:auto;z-index:5}
 @media(max-width:599px){.app>nav{height:auto;align-self:stretch;overflow:visible}}
+@page{size:A4 portrait;margin:12mm}
 @media print{
   :root{color-scheme:light}
+  html,body{width:auto;height:auto;min-height:0;margin:0;background:#fff}
   body *{visibility:hidden}
   .invoice-modal,.invoice-print,.invoice-print *{visibility:visible}
   .patient-chat-widget{display:none!important}
-  .invoice-modal{position:static;display:block;inset:auto;padding:0;background:#fff;overflow:visible}
-  .invoice-print{position:absolute;inset:0 auto auto 0;width:100%;max-width:none;padding:1rem;border-radius:0;box-shadow:none}
+  .app{display:block;min-height:0}
+  .app>nav{display:none!important}
+  .app>main>*{display:none!important}
+  .app>main>.invoice-modal,.patient-portal>.portal-invoice-modal{display:block!important}
+  .patient-portal>*{display:none!important}
+  .app>main,.patient-portal{width:100%;max-width:none;margin:0;padding:0}
+  .invoice-modal{position:static;inset:auto;display:block;width:100%;height:auto;margin:0;padding:0;background:#fff;overflow:visible;backdrop-filter:none}
+  .invoice-print{position:relative;inset:auto;width:100%;max-width:none;margin:0;padding:0;box-sizing:border-box;border-radius:0;box-shadow:none}
+  .invoice-print header{flex-direction:row}
+  .invoice-number{text-align:right}
+  .invoice-print table{width:100%;min-width:0;table-layout:fixed;margin:1rem 0;border-collapse:collapse}
+  .invoice-print th,.invoice-print td{padding:3mm 2mm;font-size:10pt;overflow-wrap:anywhere}
+  .invoice-print th:first-child,.invoice-print td:first-child{width:48%}
+  .invoice-print th:nth-child(2),.invoice-print td:nth-child(2){width:10%;white-space:nowrap}
+  .invoice-print th:nth-child(3),.invoice-print td:nth-child(3),.invoice-print th:nth-child(4),.invoice-print td:nth-child(4){width:21%;white-space:nowrap}
+  .invoice-print tr{break-inside:avoid;page-break-inside:avoid}
+  .invoice-print thead{display:table-header-group}
   .no-print{display:none!important}
 }

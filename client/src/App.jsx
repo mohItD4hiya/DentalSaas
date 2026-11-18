@@ -45,24 +45,25 @@ const RESOURCES = {
 
 function Login({ onDone }) {
   const [registering, setRegistering] = useState(false);
-  const [activationToken] = useState(() => new URLSearchParams(window.location.search).get('activate') || '');
-  const [f, setF] = useState(() => ({ name: '', email: 'dr.smith@dentalsaas.com', phone: '', password: activationToken ? '' : 'smile123' }));
+  const [activationToken] = useState(() => new URLSearchParams(window.location.search).get('activate'));
+  const activating = activationToken !== null;
+  const [f, setF] = useState(() => ({ name: '', email: 'dr.smith@dentalsaas.com', phone: '', password: activating ? '' : 'smile123' }));
   const [confirmPassword, setConfirmPassword] = useState('');
   const [err, setErr] = useState('');
   const go = async e => {
     e.preventDefault();
     setErr('');
-    if (activationToken && f.password !== confirmPassword) {
+    if (activating && f.password !== confirmPassword) {
       setErr('The passwords do not match.');
       return;
     }
     try {
-      const d = activationToken
+      const d = activating
         ? await api('auth/patient/activate', 'POST', { token: activationToken, password: f.password })
         : registering
           ? await api('auth/patient/register', 'POST', f)
           : await api('auth/login', 'POST', { email: f.email, password: f.password });
-      if (activationToken) window.history.replaceState({}, '', window.location.pathname);
+      if (activating) window.history.replaceState({}, '', window.location.pathname);
       localStorage.token = d.token;
       localStorage.name = d.name;
       localStorage.role = d.role;
@@ -85,29 +86,42 @@ function Login({ onDone }) {
   return <div className="login"><form className="card" onSubmit={go}>
     <img className="clinic-logo login-logo" src="/clinic-logo.png" alt={`${CLINIC_NAME} logo`} />
     <h1>{CLINIC_NAME}</h1><p className="muted">Appointments and patient care for your Indian dental practice</p>
-    {!activationToken && <div className="auth-mode"><button type="button" className={!registering ? '' : 'ghost'} onClick={() => changeMode(false)}>Sign in</button><button type="button" className={registering ? '' : 'ghost'} onClick={() => changeMode(true)}>Patient registration</button></div>}
+    {!activating && <div className="auth-mode"><button type="button" className={!registering ? '' : 'ghost'} onClick={() => changeMode(false)}>Sign in</button><button type="button" className={registering ? '' : 'ghost'} onClick={() => changeMode(true)}>Patient registration</button></div>}
     {registering && <input required autoComplete="name" value={f.name} onChange={e => setF({ ...f, name: e.target.value })} placeholder="Full name" />}
     {registering && <input required type="tel" autoComplete="tel" inputMode="numeric" pattern="[0-9]{10}" maxLength={10} title="Enter a 10-digit phone number" value={f.phone} onChange={e => setF({ ...f, phone: e.target.value })} placeholder="10-digit phone number" />}
-    {activationToken && <h2 className="activation-heading">Activate your patient portal</h2>}
-    {!activationToken && <input required type="email" autoComplete="email" value={f.email} onChange={e => setF({ ...f, email: e.target.value })} placeholder="Email" />}
-    <input required type="password" autoComplete={registering || activationToken ? 'new-password' : 'current-password'} minLength={registering || activationToken ? 8 : undefined} value={f.password} onChange={e => setF({ ...f, password: e.target.value })} placeholder={registering || activationToken ? 'Create password (8+ characters)' : 'Password'} />
-    {activationToken && <input required type="password" autoComplete="new-password" minLength={8} value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} placeholder="Confirm password" />}
+    {activating && <h2 className="activation-heading">Activate your patient portal</h2>}
+    {!activating && <input required type="email" autoComplete="email" value={f.email} onChange={e => setF({ ...f, email: e.target.value })} placeholder="Email" />}
+    <input required type="password" autoComplete={registering || activating ? 'new-password' : 'current-password'} minLength={registering || activating ? 8 : undefined} value={f.password} onChange={e => setF({ ...f, password: e.target.value })} placeholder={registering || activating ? 'Create password (8+ characters)' : 'Password'} />
+    {activating && <input required type="password" autoComplete="new-password" minLength={8} value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} placeholder="Confirm password" />}
     {err && <p className="err" role="alert">{err}</p>}
-    <button type="submit">{activationToken ? 'Activate account' : registering ? 'Create patient account' : 'Sign in'}</button>
+    <button type="submit">{activating ? 'Activate account' : registering ? 'Create patient account' : 'Sign in'}</button>
   </form></div>;
 }
 
 function Resource({ title, path, fields }) {
   const [rows, setRows] = useState([]), [form, setForm] = useState({}), [q, setQ] = useState('');
   const [branches, setBranches] = useState([]), [error, setError] = useState('');
-  const load = () => api(path).then(setRows); useEffect(() => { load(); }, [path]);
+  const [inventoryBranchId, setInventoryBranchId] = useState(localStorage.branchId || '');
+  const load = (branchId = inventoryBranchId) => api(path === 'inventory'
+    ? `${path}?branchId=${encodeURIComponent(branchId || localStorage.branchId || '')}`
+    : path).then(setRows);
   useEffect(() => {
-    if (path === 'appointments') api('branches').then(setBranches).catch(e => setError(e.message));
+    if (path !== 'inventory' || inventoryBranchId) load().catch(e => setError(e.message));
+  }, [path, inventoryBranchId]);
+  useEffect(() => {
+    if (path === 'appointments' || path === 'inventory') api('branches').then(branchList => {
+      setBranches(branchList);
+      if (path === 'inventory') setInventoryBranchId(current => localStorage.branchId || current || branchList.find(branch => branch.isActive)?._id || '');
+    }).catch(e => setError(e.message));
   }, [path]);
   const add = async () => {
     setError('');
     try {
-      await api(path, 'POST', { ...form, ...(path === 'appointments' ? { branchId: form.branchId || branches.find(branch => branch.isActive)?._id } : {}) });
+      await api(path, 'POST', {
+        ...form,
+        ...(path === 'appointments' ? { branchId: form.branchId || branches.find(branch => branch.isActive)?._id } : {}),
+        ...(path === 'inventory' ? { branchId: inventoryBranchId } : {}),
+      });
       setForm({});
       await load();
     } catch (e) {
@@ -116,14 +130,17 @@ function Resource({ title, path, fields }) {
   };
   const del = async id => {
     setError('');
-    try { await api(`${path}/${id}`, 'DELETE'); await load(); }
+    try {
+      await api(`${path}/${id}${path === 'inventory' ? `?branchId=${encodeURIComponent(inventoryBranchId)}` : ''}`, 'DELETE');
+      await load();
+    }
     catch (e) { setError(e.message); }
   };
   const updateRow = async (id, patch) => {
     const row = rows.find(r => r._id === id); if (!row) return;
     setError('');
     try {
-      await api(`${path}/${id}`, 'PUT', { ...row, ...patch });
+      await api(`${path}/${id}${path === 'inventory' ? `?branchId=${encodeURIComponent(inventoryBranchId)}` : ''}`, 'PUT', { ...row, ...patch });
       await load();
     } catch (e) {
       setError(e.message);
@@ -132,8 +149,13 @@ function Resource({ title, path, fields }) {
   const updateStatus = async (id, status) => updateRow(id, { status });
   const consumeStock = async id => {
     const row = rows.find(r => r._id === id); if (!row) return;
-    await api(`${path}/${id}`, 'PUT', { ...row, qty: Math.max(0, Number(row.qty || 0) - 1) });
-    load();
+    setError('');
+    try {
+      await api(`${path}/${id}${path === 'inventory' ? `?branchId=${encodeURIComponent(inventoryBranchId)}` : ''}`, 'PUT', { ...row, qty: Math.max(0, Number(row.qty || 0) - 1) });
+      await load();
+    } catch (e) {
+      setError(e.message);
+    }
   };
   const handleQtyChange = async (id, value) => {
     const row = rows.find(r => r._id === id); if (!row) return;
@@ -144,12 +166,20 @@ function Resource({ title, path, fields }) {
   const rowDefaults = title === 'Billing' ? { insurance: INDIAN_INSURERS[0] } : {};
   return <>
     <h2>{title}</h2>
+    {path === 'inventory' && (localStorage.branchId
+      ? <p className="muted">Branch inventory: {branches.find(branch => branch._id === inventoryBranchId)?.name || 'Loading…'}</p>
+      : <label className="inventory-branch-select">Manage branch inventory
+        <select aria-label="Manage branch inventory" required value={inventoryBranchId} onChange={e => setInventoryBranchId(e.target.value)}>
+          <option value="">Select branch</option>
+          {branches.filter(branch => branch.isActive).map(branch => <option key={branch._id} value={branch._id}>{branch.name}</option>)}
+        </select>
+      </label>)}
     {error && <p className="err" role="alert">{error}</p>}
     <div className="card form">{fields.filter(([k]) => !(path === 'appointments' && k === 'branchName')).map(([k, l, t]) => Array.isArray(t)
       ? <select key={k} value={form[k] || rowDefaults[k] || ''} onChange={e => setForm({ ...form, [k]: e.target.value })}><option value="">{l}</option>{t.map(o => <option key={o}>{o}</option>)}</select>
       : <input key={k} type={t || 'text'} placeholder={l} title={l} value={form[k] || ''} onChange={e => setForm({ ...form, [k]: e.target.value })} />)}
       {path === 'appointments' && <select aria-label="Appointment branch" required value={form.branchId || branches.find(branch => branch.isActive)?._id || ''} onChange={e => setForm({ ...form, branchId: e.target.value })}><option value="">Select branch</option>{branches.filter(branch => branch.isActive).map(branch => <option key={branch._id} value={branch._id}>{branch.name}</option>)}</select>}
-      <button onClick={add}>Add {title.replace(/s$/, '').toLowerCase()}</button></div>
+      <button disabled={path === 'inventory' && !inventoryBranchId} onClick={add}>Add {title.replace(/s$/, '').toLowerCase()}</button></div>
     <input className="search" placeholder={`Search ${title.toLowerCase()}`} value={q} onChange={e => setQ(e.target.value)} />
     <div className="card scroll"><table><thead><tr>{fields.map(([k, l]) => <th key={k}>{l}</th>)}<th /></tr></thead>
       <tbody>{shown.map(r => <tr key={r._id}>{fields.map(([k, , t]) => <td key={k}>
@@ -693,9 +723,10 @@ const addDays = (date, days) => {
 function Reports({ s }) {
   const rev = s.revenueByMonth, mix = Object.entries(s.treatmentMix);
   const today = new Date();
-  const initialStart = dateValue(addDays(today, -29));
+  const initialStart = dateValue(addDays(today, -59));
+  const initialEnd = dateValue(addDays(today, 30));
   const [appointments, setAppointments] = useState([]), [start, setStart] = useState(initialStart);
-  const [end, setEnd] = useState(dateValue(today)), [grouping, setGrouping] = useState('day');
+  const [end, setEnd] = useState(initialEnd), [grouping, setGrouping] = useState('week');
   const [patientError, setPatientError] = useState('');
   useEffect(() => { api('appointments').then(setAppointments).catch(e => setPatientError(e.message)); }, []);
   const startDate = parseDateValue(start), endDate = parseDateValue(end);
@@ -722,8 +753,9 @@ function Reports({ s }) {
   const appointmentCounts = new Map(periods.map(period => [period.key, 0]));
   if (start && end && startDate <= endDate) {
     appointments.forEach(appointment => {
-      if (!appointment.date) return;
-      const day = parseDateValue(appointment.date);
+      const scheduledDate = appointment.date;
+      if (!scheduledDate) return;
+      const day = parseDateValue(scheduledDate);
       if (Number.isNaN(day.getTime())) return;
       if (day < startDate || day > endDate) return;
       const key = dateValue(periodStart(day));
@@ -731,10 +763,10 @@ function Reports({ s }) {
     });
   }
   return <><h2>Reports</h2><div className="card patient-report">
-    <div className="report-heading"><div><h3>Patient appointments</h3><p className="muted">Appointments scheduled in the selected date range</p></div>
+    <div className="report-heading"><div><h3>Patient appointments</h3><p className="muted">Counts by scheduled appointment date, not booking date.</p></div>
       <div className="report-filters">
-        <label>From<input type="date" value={start} max={end} onChange={e => setStart(e.target.value)} /></label>
-        <label>To<input type="date" value={end} min={start} onChange={e => setEnd(e.target.value)} /></label>
+        <label>Appointment date from<input type="date" value={start} max={end} onChange={e => setStart(e.target.value)} /></label>
+        <label>Appointment date to<input type="date" value={end} min={start} onChange={e => setEnd(e.target.value)} /></label>
         <label>Group by<select value={grouping} onChange={e => setGrouping(e.target.value)}><option value="day">Day</option><option value="week">Week</option><option value="month">Month</option></select></label>
       </div>
     </div>
@@ -1080,10 +1112,16 @@ function PatientPortal({ name, onSignOut }) {
     </aside>
   </div>;
 }
-function Assistant() {
+function Assistant({ active }) {
   const [msgs, setMsgs] = useState([{ r: 'ai', t: 'Hi Doctor. I can answer questions about clinic activity and share general oral-health information. For personal diagnosis or treatment advice, please examine the patient or refer to a dentist.' }]), [q, setQ] = useState('');
   const [listening, setListening] = useState(false), [voiceMessage, setVoiceMessage] = useState('');
   const recognitionRef = useRef(null);
+  useEffect(() => {
+    if (!active && listening) {
+      setVoiceMessage('Voice input stopped because you left the AI Assistant.');
+      recognitionRef.current?.stop();
+    }
+  }, [active, listening]);
   const ask = async text => {
     const t = text || q;
     if (!t) return;
@@ -1118,8 +1156,7 @@ function Assistant() {
       const transcript = event.results[0][0].transcript.trim();
       if (transcript) {
         setQ(transcript);
-        setVoiceMessage(`Heard: “${transcript}”`);
-        ask(transcript);
+        setVoiceMessage(`Heard: “${transcript}”. Review it, then select Ask AI.`);
       }
     };
     recognition.onerror = event => {
@@ -1140,18 +1177,21 @@ function Assistant() {
 
 export default function App() {
   const [authed, setAuthed] = useState(!!localStorage.token), [role, setRole] = useState(localStorage.role || 'doctor');
+  const activationRequested = new URLSearchParams(window.location.search).has('activate');
   const [tab, setTab] = useState('Dashboard'), [s, setS] = useState(null);
+  const [assistantMounted, setAssistantMounted] = useState(false);
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   useEffect(() => {
     if (authed && role === 'doctor') api('stats').then(setS).catch(() => setS(null));
   }, [authed, role, tab]);
-  if (!authed) return <Login onDone={user => { setRole(user.role); setAuthed(true); }} />;
+  if (!authed || activationRequested) return <Login onDone={user => { setRole(user.role); setAuthed(true); }} />;
   const signOut = () => { localStorage.clear(); setAuthed(false); setRole('doctor'); };
   if (role === 'patient') return <PatientPortal name={localStorage.name} onSignOut={signOut} />;
-  return <div className="app"><nav className={mobileNavOpen ? 'mobile-open' : ''}><div className="brand"><img className="clinic-logo nav-logo" src="/clinic-logo-sidebar.png" alt={`${CLINIC_NAME} logo`} /><button className="mobile-menu-toggle" aria-label={mobileNavOpen ? 'Close navigation menu' : 'Open navigation menu'} aria-expanded={mobileNavOpen} onClick={() => setMobileNavOpen(open => !open)}><span /><span /><span /></button></div>{NAV_ITEMS.map(([label, icon]) => <button key={label} className={`nav-link ${label === tab ? 'on' : ''}`} onClick={() => { setTab(label); setMobileNavOpen(false); }}><Icon name={icon} size={19} /><span>{label}</span></button>)}
+  return <div className="app"><nav className={mobileNavOpen ? 'mobile-open' : ''}><div className="brand"><img className="clinic-logo nav-logo" src="/clinic-logo-sidebar.png" alt={`${CLINIC_NAME} logo`} /><button className="mobile-menu-toggle" aria-label={mobileNavOpen ? 'Close navigation menu' : 'Open navigation menu'} aria-expanded={mobileNavOpen} onClick={() => setMobileNavOpen(open => !open)}><span /><span /><span /></button></div>{NAV_ITEMS.map(([label, icon]) => <button key={label} className={`nav-link ${label === tab ? 'on' : ''}`} onClick={() => { setTab(label); if (label === 'AI Assistant') setAssistantMounted(true); setMobileNavOpen(false); }}><Icon name={icon} size={19} /><span>{label}</span></button>)}
     <button className="out" onClick={signOut}>Sign out</button></nav>
     <main><p className="muted">Welcome back, {localStorage.name}</p>
-      {tab === 'Dashboard' && s && <Dashboard s={s} />}{tab === 'Reports' && s && <Reports s={s} />}{tab === 'AI Assistant' && <Assistant />}
+      {tab === 'Dashboard' && s && <Dashboard s={s} />}{tab === 'Reports' && s && <Reports s={s} />}
+      {assistantMounted && <div hidden={tab !== 'AI Assistant'}><Assistant active={tab === 'AI Assistant'} /></div>}
       {tab === 'Billing' && <Billing />}
       {tab === 'Patients' && <Patients />}
       {RESOURCES[tab] && <Resource key={tab} title={tab} {...RESOURCES[tab]} />}</main></div>;

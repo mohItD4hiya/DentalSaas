@@ -55,5 +55,10 @@ module.exports = {
     subtotal: Number, gstRate: Number,
     gstAmount: Number, amount: Number, insurance: String, status: { type: String, default: 'Unpaid' },
   }),
-  Item: M('Item', { name: String, qty: Number, minQty: { type: Number, default: 10 } }),
+  Item: M('Item', {
+    name: { type: String, required: true, trim: true },
+    qty: { type: Number, required: true, min: 0 },
+    minQty: { type: Number, default: 10, min: 0 },
+    branchId: { type: mongoose.Schema.Types.ObjectId, ref: 'Branch', required: true, index: true },
+  }),
 };

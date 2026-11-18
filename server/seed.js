@@ -37,7 +37,10 @@ const d = (n) => new Date(Date.now() + n * 864e5).toISOString().slice(0, 10);
   await Treatment.insertMany(procs.map((procedure, i) => ({ patient: names[i % 4], patientId: patients[i % patients.length]._id, procedure, notes: 'Routine Indian dental care plan', status: i % 3 ? 'Done' : 'Pending', followUp: d(14) })));
   const insurers = ['Star Health', 'Care Health', 'Max Bupa', 'ICICI Lombard', 'Self Pay'];
   await Invoice.insertMany([0, 1, 2, 3, 4, 5].map(i => ({ patient: names[i % 4], patientId: patients[i % patients.length]._id, date: d(-i * 20), amount: 1800 + i * 2600, insurance: insurers[i % insurers.length], status: i === 1 ? 'Unpaid' : 'Paid' })));
-  await Item.insertMany([['Nitrile gloves (box)', 36], ['Local anesthetic cartridges', 7], ['Composite resin', 16], ['Surgical masks (box)', 9]].map(([name, qty]) => ({ name, qty, minQty: 10 })));
+  const inventory = [['Nitrile gloves (box)', 36], ['Local anesthetic cartridges', 7], ['Composite resin', 16], ['Surgical masks (box)', 9]];
+  await Item.insertMany([rohiniBranch, pitampuraBranch].flatMap(branch =>
+    inventory.map(([name, qty]) => ({ name, qty, minQty: 10, branchId: branch._id })),
+  ));
   console.log('Seeded Indian clinic data.');
   console.log('Clinic admin: dr.smith@dentalsaas.com / smile123');
   for (const doctor of branchDoctors) {
